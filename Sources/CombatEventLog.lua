@@ -10,7 +10,7 @@ cl = DPS_Tracker.CombatEventLogDisplay
 local sprintf = _G.string.format
 local E = errors
 
-local LOGGIN_ENABLED = false
+local LOGGING_ENABLED = false
 local combatEventLog = fm:createCombatEventLog( L["ADDON_AND_VERSION"] )
 
 function cl:getCombatEventLogFrame()
@@ -25,13 +25,20 @@ end
 function cl:clearFrameText()
     fm:clearFrameText( combatEventLog )
 end
-function cl:enableLogging()
+function cl:enableCombatLogging()
 	LOGGING_ENABLED = true
 end
-function cl:disableLogging()
+function cl:disableCombatLogging()
 	LOGGING_ENABLED = false
 end
+function cl:isCombatLoggingEnabled()
+	return LOGGING_ENABLED
+end
+function cl:setCombatLogging( isLogging )
+	LOGGING_ENABLED = isLogging
+end
 function cl:postLogEntry( logEntry )
+	E:where( tostring( LOGGING_ENABLED ))
 	if LOGGING_ENABLED then
 		combatEventLog.Text:Insert( logEntry )
 	end
