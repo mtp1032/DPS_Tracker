@@ -111,7 +111,7 @@ local EVENT_CRITICAL        = 21	-- _DAMAGE suffix
 local EVENT_GLANCING        = 22 	-- _DAMAGE suffix
 local EVENT_CRUSHING        = 23	-- _DAMAGE suffix
 
---									Indices into the playerInfo table
+--									Indices into the playerInfoTable table
 local INFO_PLAYER_NAME 		= 1
 local INFO_PET_NAME 		= 2
 
@@ -164,7 +164,7 @@ local healingStats = {
 	0, 	-- TOTAL_CRITICAL_HEALS
 	0}	-- TOTAL_PERIODIC_HEALS
 
-local playerInfo = { 
+local playerInfoTable = { 
 	nil,	-- INFO_PLAYER_NAME 
 	nil, 	-- INFO_PET_NAME
 }
@@ -258,10 +258,10 @@ local function dumpCELU()
 		dumpSubEvent( stats )
 	end
 end
-local function setPlayerInfo()
-	playerInfo[INFO_PLAYER_NAME] = UnitName("Player")
-	playerInfo[INFO_PET_NAME] = UnitName("Pet")
-	return
+local function getPlayerInfo()
+	local player = UnitName("Player")
+	local pet = UnitName("Pet")
+	return player, pet
 end
 -- CHECKS WHETHER THE UNIT IS THE PLAYER OR THE PLAYER'S
 -- PET OR GUARDIAN. RETURNS FALSE IF NOT.
@@ -272,9 +272,7 @@ local function isUnitValid( stats )
 	local targetFlags = stats[EVENT_TARGETFLAGS]
 
 	local unitIsValid = false
-	setPlayerInfo()
-	local player = playerInfo[INFO_PLAYER_NAME]
-	local pet = playerInfo[INFO_PET_NAME]
+	player, pet = getPlayerInfo()
 	
 	-- is this unit a pet and, if so, does the pet belong to the
 	-- player?
@@ -356,7 +354,7 @@ local function reset()
 	playerCastsHit		= 0
 	petCastsHit			= 0
 	auraCount			= 0
-	playerInfo			= {nil, nil}
+	playerInfoTable			= {nil, nil}
 	debuffTable			= {}
 end
 local function getMitigatedDamage()
@@ -481,8 +479,8 @@ local function collectHealingStats( stats )
 end
 local function collectMissedStats( stats )
 	local subEvent = stats[EVENT_SUBEVENT]
-	local playersName = playerInfo[INFO_PLAYER_NAME]
-	local playersPet = playerInfo[INFO_PET_NAME]
+	local playersName = playerInfoTable[INFO_PLAYER_NAME]
+	local playersPet = playerInfoTable[INFO_PET_NAME]
 
 	-- if not a *_MISSED subevent, then return
 	if subEvent ~= "SPELL_MISSED" and
@@ -582,10 +580,8 @@ local function collectDamageStats(stats)
 		return
 	 end
 
-	 setPlayerInfo()
+	playersName, playersPet = getPlayerInfo()
 	local targetName 	= stats[EVENT_TARGETNAME]
-	local playersName 	= playerInfo[INFO_PLAYER_NAME]
-	local playersPet  	= playerInfo[INFO_PET_NAME]
 	local isRanged 		= false
 	local logEntry		= nil
 
@@ -904,6 +900,7 @@ local function summarizeCombat( elapsedTime )
 
 	cl:postLogEntry(sprintf("\n"))
 end
+
 local eventFrame = CreateFrame("Frame" )
 eventFrame:RegisterEvent( "ADDON_LOADED")
 eventFrame:RegisterEvent( "PLAYER_ENTERING_WORLD")
@@ -924,25 +921,35 @@ function( self, event, ... )
 	end
 	if event == "PLAYER_LOGIN" then
 		-- Init everything: this is where the magic happens
-		if playerInfo[INFO_PLAYER_NAME] == nil then
-			setPlayerInfo()
-		end
+		player, pet = getPlayerInfo()
 		return
 	end
 	if event == "PLAYER_REGEN_DISABLED" then
 		PLAYER_IN_COMBAT = true
-		if playerInfo[INFO_PLAYER_NAME] == nil then
-			setPlayerInfo()
+			
+		player, pet = getPlayerInfo()
+		if pet == nil then
+			printMsg( sprintf("%s entered combat.\n", player ) )
+		else
+			printMsg( sprintf("%s and %s entered combat.\n", player, pet ) )
 		end
-		local msg = sprintf("%s entered combat.\n", playerInfo[INFO_PLAYER_NAME] )
-		printMsg( msg )
-		return
 	end
 	if event == "PLAYER_REGEN_ENABLED" then
 			PLAYER_IN_COMBAT = false
-			local msg = sprintf("%s exited combat.\n", playerInfo[INFO_PLAYER_NAME] )
-			printMsg( msg )
-			summarizeCombat( elapsedTime )
+			local player, pet = getPlayerInfo()
+			if pet == nil then
+				printMsg( sprintf("%s exited combat.\n", player ) )
+			else
+				printMsg( sprintf("%s and %s exited combat.\n", player, pet ) )
+			end
+			local logging = cl:isCombatLoggingEnabled()
+			if logging == false then
+				cl:enableCombatLogging()
+				summarizeCombat( elapsedTime )
+				cl:disableCombatLogging()
+			else
+				summarizeCombat( elapsedTime )
+			end
 			-- if DUMP_COMBAT_LOG then 
 			-- 	dumpCELU()
 			-- end
