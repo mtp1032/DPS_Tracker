@@ -38,19 +38,19 @@ local function optionsMenu_Initialize()
 	messageText:SetText(sprintf(str))
 
     -- Create checkbox to enable logging AND summaries
-	local enableLoggingButton = CreateFrame("CheckButton", "OPTIONS_enableLoggingButton", optionsMenuFrame, "ChatConfigCheckButtonTemplate")
+	local enableCombatLoggingButton = CreateFrame("CheckButton", "OPTIONS_enableCombatLoggingButton", optionsMenuFrame, "ChatConfigCheckButtonTemplate")
 
-    enableLoggingButton:SetPoint("TOPLEFT", 20, -180)
-    enableLoggingButton.tooltip = L["ENABLE_LOGGING_TOOLTIP"]
-	_G[enableLoggingButton:GetName().."Text"]:SetText(L["PROMPT_ENABLE_LOGGING"])
-	enableLoggingButton:SetChecked( loggingEnabled )
-	enableLoggingButton:SetScript("OnClick", 
+    enableCombatLoggingButton:SetPoint("TOPLEFT", 20, -180)
+    enableCombatLoggingButton.tooltip = L["ENABLE_LOGGING_TOOLTIP"]
+	_G[enableCombatLoggingButton:GetName().."Text"]:SetText(L["PROMPT_ENABLE_LOGGING"])
+	enableCombatLoggingButton:SetChecked( loggingEnabled )
+	enableCombatLoggingButton:SetScript("OnClick", 
 		function(self)
 			loggingEnabled = self:GetChecked() and true or false
 			if loggingEnabled then
-				cl:enableLogging()
+				cl:enableCombatLogging()
 			else
-				cl:disableLogging()
+				cl:disableCombatLogging()
 			end
 		end)
 
