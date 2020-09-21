@@ -1,10 +1,10 @@
-## Interface: 90002
+## Interface: 90001
 ## Title: DPS_Tracker
 ## Notes: Shadowlands Beta
 ## Author: Michael Peterson
 ## SavedVariablesPerCharacter: trackerFrameSize, DPS_TrackerDB
 ## Version: 3.5
-## X-Expansion: Shadowlands Beta
+## X-Expansion: Shadowlands
 ## 17 September, 2020
 ## OptionalDeps: LibSharedMedia-3.0, LibDBIcon-1.0, LibDataBroker-1.1
 
