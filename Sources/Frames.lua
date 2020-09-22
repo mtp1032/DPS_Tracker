@@ -17,41 +17,10 @@ local E = errors
 local DEFAULT_FRAME_WIDTH = 600
 local DEFAULT_FRAME_HEIGHT = 400
 
-local function createTopFrame( frameName, width, height, red, blue, green )
-	local f = CreateFrame( "Frame", frameName, UIParent, "BasicFrameTemplateWithInset" )
-	if width == nil then
-		width = DEFAULT_FRAME_WIDTH
-	end
-	if height == nil then
-		height = DEFAULT_FRAME_HEIGHT
-	end
-	f:SetSize( width, height )
-	return f
-end
-local function createTextDisplay(f)
-    f.SF = CreateFrame("ScrollFrame", "$parent_DF", f, "UIPanelScrollFrameTemplate")
-    f.SF:SetPoint("TOPLEFT", f, 12, -30)
-    f.SF:SetPoint("BOTTOMRIGHT", f, -30, 40)
 
-    --                  Now create the EditBox
-    f.Text = CreateFrame("EditBox", nil, f)
-    f.Text:SetMultiLine(true)
-    f.Text:SetSize(DEFAULT_FRAME_WIDTH - 20, DEFAULT_FRAME_HEIGHT )
-    f.Text:SetPoint("TOPLEFT", f.SF)    -- ORIGINALLY TOPLEFT
-    f.Text:SetPoint("BOTTOMRIGHT", f.SF) -- ORIGINALLY BOTTOMRIGHT
-    f.Text:SetMaxLetters(99999)
-    f.Text:SetFontObject(GameFontNormal) -- Color this R 99, G 14, B 55
-    f.Text:SetHyperlinksEnabled( true )
-    f.Text:SetTextInsets(5, 5, 5, 5, 5)
-    f.Text:SetAutoFocus(false)
-    f.Text:EnableMouse( false )
-    f.Text:EnableKeyboard( false )
-    f.Text:SetScript("OnEscapePressed", 
-        function(self) 
-            self:ClearFocus() 
-        end) 
-    f.SF:SetScrollChild(f.Text)
-end
+--------------------------------------------------------------------------
+--                         CREATE THE VARIOUS BUTTONS
+--------------------------------------------------------------------------
 local function createResizeButton( f )
 	f:SetResizable( true )
 	local resizeButton = CreateFrame("Button", nil, f)
@@ -129,8 +98,43 @@ local function createResetButton( f, placement, offX, offY )
     f.resetButton = resetButton
 end
 --------------------------------------------------------------------------
---                                  CREATE THE FRAMES
+--                         CREATE THE FRAMES
 --------------------------------------------------------------------------
+local function createTopFrame( frameName, width, height, red, blue, green )
+	local f = CreateFrame( "Frame", frameName, UIParent, "BasicFrameTemplateWithInset" )
+	if width == nil then
+		width = DEFAULT_FRAME_WIDTH
+	end
+	if height == nil then
+		height = DEFAULT_FRAME_HEIGHT
+	end
+	f:SetSize( width, height )
+	return f
+end
+local function createTextDisplay(f)
+    f.SF = CreateFrame("ScrollFrame", "$parent_DF", f, "UIPanelScrollFrameTemplate")
+    f.SF:SetPoint("TOPLEFT", f, 12, -30)
+    f.SF:SetPoint("BOTTOMRIGHT", f, -30, 40)
+
+    --                  Now create the EditBox
+    f.Text = CreateFrame("EditBox", nil, f)
+    f.Text:SetMultiLine(true)
+    f.Text:SetSize(DEFAULT_FRAME_WIDTH - 20, DEFAULT_FRAME_HEIGHT )
+    f.Text:SetPoint("TOPLEFT", f.SF)    -- ORIGINALLY TOPLEFT
+    f.Text:SetPoint("BOTTOMRIGHT", f.SF) -- ORIGINALLY BOTTOMRIGHT
+    f.Text:SetMaxLetters(99999)
+    f.Text:SetFontObject(GameFontNormal) -- Color this R 99, G 14, B 55
+    f.Text:SetHyperlinksEnabled( true )
+    f.Text:SetTextInsets(5, 5, 5, 5, 5)
+    f.Text:SetAutoFocus(false)
+    f.Text:EnableMouse( false )
+    f.Text:EnableKeyboard( false )
+    f.Text:SetScript("OnEscapePressed", 
+        function(self) 
+            self:ClearFocus() 
+        end) 
+    f.SF:SetScrollChild(f.Text)
+end
 function fm:createHelpFrame( title )
 	local f = createTopFrame("HelpFrame", 700, 225, 0, 0, 0 )
 	f:SetPoint("CENTER", 0, 200)
@@ -153,6 +157,9 @@ function fm:createHelpFrame( title )
 	createClearButton(f,"BOTTOMLEFT", 5,5 )
     return f
 end
+--------------------------------------------------------------------------
+--                   THESE ARE THE APPLICATION FRAMES
+--------------------------------------------------------------------------
 --  Create the frame where the events are logged
 function fm:createCombatEventLog( title )
 	local f = createTopFrame("CombatEventLogFrame", 700, 225, 0, 0, 0 )
