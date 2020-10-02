@@ -31,7 +31,13 @@ Sources\Frames.lua
 Sources\ErrorMsgFrame.lua
 Sources\MsgFrame.lua
 Sources\CombatEventLog.lua
+Sources\EquipmentSlots.lua
 Sources\EventHandler.lua
 Sources\OptionsMenu.lua
 Sources\MiniMapIcon.lua
+
+##--------------------------------------------
+## UNIT UnitTests
+##--------------------------------------------
+##UnitTests\UnitTestEQS.lua
 

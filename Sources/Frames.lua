@@ -17,7 +17,6 @@ local E = errors
 local DEFAULT_FRAME_WIDTH = 600
 local DEFAULT_FRAME_HEIGHT = 400
 
-
 --------------------------------------------------------------------------
 --                         CREATE THE VARIOUS BUTTONS
 --------------------------------------------------------------------------
@@ -216,6 +215,12 @@ function fm:createErrorMsgFrame(title)
     createClearButton(f, "BOTTOM",f, 5, 5)
     return f
 end
+function fm:printErrorMsg( msg )
+        UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0, nil, true ) 
+end
+function fm:printInfoMsg( msg )
+    UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0, nil, 10 ) 
+end
 --  Create the frame where info messages are posted
 function fm:createMsgFrame( title )
     local f = createTopFrame("MsgFrame", 800, 600, 0, 0, 0 )
@@ -267,14 +272,6 @@ function fm:clearFrameText(f)
 	f.Text:SetText("") 
 	f.Text:ClearFocus()
 end
---*****************************************************************************
---						EMF UNIT TESTS
---*****************************************************************************
-
-
-
-
-
 
 
 

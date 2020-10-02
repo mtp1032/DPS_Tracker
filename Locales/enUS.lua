@@ -21,9 +21,9 @@ local sprintf = _G.string.format
 local LOCALE = GetLocale()      -- BLIZZ
 if LOCALE == "enUS" then
 
-	L["ADDON_NAME"]						= "DPS_Tracker"
-	L["VERSION"]						= "V3.5"
-	L["ADDON_AND_VERSION"] 				= sprintf("%s %s", L["ADDON_NAME"], L["VERSION"] )
+	L["ADDON_NAME"]							= "DPS_Tracker"
+	L["VERSION"]							= "V1.0 (ShadowLands)"
+	L["ADDON_AND_VERSION"] 					= sprintf("%s %s", L["ADDON_NAME"], L["VERSION"] )
 	L["ADVANCED_COMBAT_LOGGING_ENABLED"]	= sprintf("%s", "Advanced Combat Logging Enabled")
 	L["ADVANCED_COMBAT_LOGGING_DISABLED"]	= sprintf("%s", "Advanced Combat Logging Disabled")
 
@@ -43,7 +43,7 @@ if LOCALE == "enUS" then
 	L["SELECT_BUTTON_TEXT"]					= "Select"
 	L["RESET_BUTTON_TEXT"]					= "Reset"
 	L["RELOAD_BUTTON_TEXT"]					= "Reload"
-	L["CLEAR_BUTTON_TEXT"]						= "Clear"
+	L["CLEAR_BUTTON_TEXT"]					= "Clear"
 
 
 	L["PROMPT_ENABLE_ADDON"] = sprintf("Disable %s", L["ADDON_NAME"])
@@ -59,10 +59,12 @@ if LOCALE == "enUS" then
 
     L["ERROR_MSG"]            	= "[ERROR] %s"	
 	L["INFO_MSG"]				= "[INFO] %s"
+	L["UNIT_TESTS"]				= 	sprintf( "%s - %s", L["ADDON_AND_VERSION"], "Unit Tests")
 
 	L["PARAM_NIL"]				= "Invalid Parameter - Was nil."
 	L["PARAM_OUTOFRANGE"]		= "Invalid Parameter - Out-of-range."
 	L["PARAM_WRONGTYPE"]		= "Invalid Parameter - Wrong type."
+	L["UNEXPECTED_RETURN_VALUE"] = "Unexpected Return Value"
 	
 	return 
 end

@@ -27,5 +27,3 @@ function mf:postMsg( msg )
 	fm:showFrame( msgFrame )
 	msgFrame.Text:Insert( msg )
 end
------------------------------------------------------
--- mf:postMsg( "Unit Test 1 - passed")

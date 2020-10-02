@@ -18,7 +18,7 @@ SUCCESSFUL_RESULT   = { STATUS_SUCCESS, nil, nil }
 DEFAULT_RESULT      = { STATUS_SUCCESS, nil, nil }
 FAILED_RESULT       = { STATUS_FAILURE, nil, nil }
 
-local DISPLAY_TIME = 8
+local DISPLAY_TIME = 20
 
 ---------------------------------------------------------------------------------------------------
 --                      LOCAL FUNCTIONS
@@ -114,14 +114,3 @@ end
 function errors:printInfoMsg( msg )
 	DEFAULT_CHAT_FRAME:AddMessage( msg, 1.0, 1.0, 0.0 )
 end
----------------------------------------------------------------
---						UNIT TESTS
----------------------------------------------------------------
--- local result = {errors:setFailure(L["PARAM_OUTOFRANGE"])}
--- errors:printErrorResult( result )
-
--- errors:printMsg( "Test 2: printMsg")
-
--- errors:printErrorMsg("Test 3: printErrorMsg(msg)")
-
--- errors:printInfoMsg( "Test 4: printInfoMsg(msg)")

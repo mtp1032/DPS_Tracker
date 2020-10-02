@@ -38,7 +38,6 @@ function cl:setCombatLogging( isLogging )
 	LOGGING_ENABLED = isLogging
 end
 function cl:postLogEntry( logEntry )
-	E:where( tostring( LOGGING_ENABLED ))
 	if LOGGING_ENABLED then
 		combatEventLog.Text:Insert( logEntry )
 	end

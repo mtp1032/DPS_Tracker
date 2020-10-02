@@ -39,49 +39,6 @@ local debugprofilestop = _G.debugprofilestop
 -- ********************************************************************************
 --						GLOBAL (TO THIS FILE) CONSTANTS AND VARIABLES
 -- ********************************************************************************
-	-- indices into the avoidanceCasts table
-local DODGE_COUNT 	= 1
-local PARRY_COUNT 	= 2
-local MISS_COUNT 	= 3
-
-local avoidanceCasts = {
-		0, -- DODGE_COUNT
-		0, -- PARRY_COUNT
-		0  -- MISS_COUNT
-	}
-
---						Indices into the school name table
-local PHYSICAL 	= 1
-local HOLY 		= 2
-local FIRE 		= 3
-local NATURE 	= 4
-local FROST 	= 5
-local SHADOW 	= 6
-local ARCANE 	= 7
---					Indices into the damage stats table
-local ACCUMULATED_DMG 	= 1
-local CRITICAL_DMG 		= 2
-local PERIODIC_DMG 		= 3
-local NUM_TICKS 		= 4
-local PERIODIC_DMG 		= 5
-local PET_DMG 			= 6
-local RANGED_DMG 		= 7
-local RESISTED			= 8	-- amount in stats[17]
-local ABSORBED			= 9
-local BLOCKED			= 10
-local PARRIED 			= 11
-local DODGED			= 12
-local MISSED			= 13
-local GLANCING			= 14
-local CRUSHING			= 15
-local DEFLECTED			= 16
-local TOTAL_AVOIDED		= 17
-
---						Indices into the healing stats table
-local TOTAL_HEALING 		= 1
-local TOTAL_OVERHEALED 		= 2
-local TOTAL_CRITICAL_HEALS 	= 3
-local TOTAL_PERIODIC_HEALS 	= 4
 
 --	These are indices into COMBAT_LOG_EVENT_UNFILTERED stat table returned by CombatLogGetCurrentEventInfo()
 local EVENT_TIMESTAMP		= 1		-- valid for all subEvents
@@ -111,9 +68,46 @@ local EVENT_CRITICAL        = 21	-- _DAMAGE suffix
 local EVENT_GLANCING        = 22 	-- _DAMAGE suffix
 local EVENT_CRUSHING        = 23	-- _DAMAGE suffix
 
---									Indices into the playerInfoTable table
-local INFO_PLAYER_NAME 		= 1
-local INFO_PET_NAME 		= 2
+-- indices into the avoidanceCasts table
+local DODGE_COUNT 	= 1
+local PARRY_COUNT 	= 2
+local MISS_COUNT 	= 3
+	
+local avoidanceCasts = {
+		0, -- DODGE_COUNT
+		0, -- PARRY_COUNT
+		0  -- MISS_COUNT
+	}
+
+local MISS_ABSORB 	= 1
+local MISS_BLOCK 	= 2
+local MISS_DODGE 	= 3
+local MISS_DEFLECT 	= 4
+local MISS_EVADE 	= 5
+local MISS_IMMUNE 	= 6
+local MISS_MISS 	= 7
+local MISS_PARRY 	= 8
+local MISS_REFLECT 	= 9
+local MISS_RESIST 	= 10
+local FIRST_MISS = MISS_ABSORB
+local LAST_MISS = MISS_RESIST
+
+local damageMitigatedByFoe 	= {0,0,0,0,0,0,0,0,0,0}
+local damageMitigatedByFriend = {0,0,0,0,0,0,0,0,0,0}
+
+--						Indices into the school name table
+local PHYSICAL 	= 1
+local HOLY 		= 2
+local FIRE 		= 3
+local NATURE 	= 4
+local FROST 	= 5
+local SHADOW 	= 6
+local ARCANE 	= 7
+--						Indices into the healing stats table
+local TOTAL_HEALING 		= 1
+local TOTAL_OVERHEALED 		= 2
+local TOTAL_CRITICAL_HEALS 	= 3
+local TOTAL_PERIODIC_HEALS 	= 4
 
 local COMBAT_START_TIME		= 0
 local COMBAT_END_TIME		= 0
@@ -129,45 +123,43 @@ local playerCastsHit		= 0
 local petCastsHit			= 0
 local helpFrame				= nil
 local addonDisabled			= false
-local damageMitigated 		= { 0, 0, 0, 0, 0 }
 local debuffTable 			= {}
 local CELU_Table 			= {}
 
-local MITIGATED_DMG_BLOCKED 	= 1
-local MITIGATED_DMG_DEFLECTED 	= 2
-local MITIGATED_DMG_IMMUNE		= 3
-local MITIGATED_DMG_REFLECTED	= 4
-local MITIGATED_DMG_RESISTED	= 5
-
 --									Tables for collecting various data
-local damageStats = {
-	0, 			-- 1 Accumulated Damage
-	0,			-- 2 Accumulated Critical Damage
-	0,			-- 3 Accumulated Periodic Damage
-	0,			-- 4 Accumulated Pet Damage
-	0,			-- 5 Accumulated Ticks
+--					Indices into the damage accumulator table
+local ALL_DMG 		= 1
+local SPELL_DMG		= 2
+local CRITICAL_DMG	= 3
+local PERIODIC_DMG 	= 4
+local NUM_TICKS 	= 5
+local TICK_DMG		= 6
+local PET_DMG 		= 7
+local RANGED_DMG 	= 8
+local GLANCING		= 9
+local CRUSHING		= 10
+local DMG_FIRST = SPELL_DMG
+local DMG_LAST  = CRUSHING
+
+local damageAccumTable = {
+	0, 			-- 1 Accumulated Damage for all types
+	0,			-- 2 Accumulated Spell Damage
+	0,			-- 3 Accumulated Critical Damage
+	0,			-- 4 Accumulated Periodic Damage
+	0,			-- 5 Accumulated Num Ticks
 	0,			-- 6 Accumulated Tick Damage
-	0,			-- 7 Accumulated Ranged Damage (notably, wands)
-	0,			-- 8 Accumulated Damage resisted
-	0, 			-- 9 Accumulated Damage absorbed
-	0, 			-- 10 Accumulated Damage blocked
-	0,			-- 11 Accumulated Damage parried,
-	0,			-- 12 Accumulated Damage dodged,
-	0,			-- 13 Accumulated Damage missed
-	0,			-- 14 Accumulated Damage glancing
-	0,			-- 15 Accumulated Damage crushing
-	0,			-- 16 Accumulated damage deflected
-	0 }			-- 17 Total damage avoided
+	0,			-- 7 Accumulated Pet Damage
+	0,			-- 7 Accumulated Tick Damage
+	0,			-- 8 Accumulated Ranged Damage (notably, wands)
+	0,			-- 9 Accumulated Damage glancing
+	0,			-- 10 Accumulated Damage crushing 
+}
 local healingStats = {
 	0,	-- TOTAL
 	0,	-- TOTAL_OVERHEALED
 	0, 	-- TOTAL_CRITICAL_HEALS
 	0}	-- TOTAL_PERIODIC_HEALS
 
-local playerInfoTable = { 
-	nil,	-- INFO_PLAYER_NAME 
-	nil, 	-- INFO_PET_NAME
-}
 local spellSchoolNames = {
 	{1, "Physical"},
 	{2, "Holy"},
@@ -195,10 +187,83 @@ local schoolNameTable = {
 	"Shadow",
 	"Arcane"}
 
+local missNameTable = {
+	"ABSORB",
+	"BLOCK",
+	"DEFLECT",
+	"DODGE",
+	"EVADE",
+	"IMMUNE",
+	"MISS",
+	"PARRY",
+	"REFLECT",
+	"RESIST"
+}
+
 local auraCount = 0
+local testCasts = 0
+local testMissedCasts = 0
+
 -- ********************************************************************************
 --							FUNCTION DEFINITIONS
 -- ********************************************************************************
+-- Get the miss type from the name table
+local function getMissTypeName( index )
+	local name = missNameTable[index]
+	return name
+end
+-- Get the index from a name table
+local function getMissNameTableIndex( name )
+	local index = 0
+	if name == "ABSORB" then
+		index = MISS_ABSORB
+	elseif name == "BLOCK" then 
+		index = MISS_BLOCK
+	elseif name == "DODGE" then 
+		index = MISS_DODGE	
+	elseif name == "DEFLECT" then 
+		index = MISS_DEFLECT
+	elseif name == "EVADE" then 
+		index = MISS_EVADE
+	elseif name == "IMMUNE" then 
+		index = MISS_IMMUNE
+	elseif name == "MISS" then 
+		index = MISS_MISS
+	elseif name == "PARRY" then 
+		index = MISS_PARRY
+	elseif name == "REFLECT" then 
+		index = MISS_REFLECT
+	elseif name == "RESIST" then 
+		index = MISS_RESIST
+	else
+		index = -1
+	end
+	return index
+end
+-- return name-value pair from a table
+local function getTableEntry( tbl, index )
+	local name = getMissTypeName( index )
+	local value = tbl[index]
+	return name, value
+end
+-- Overwrites existing entry
+local function insertTableEntry( tbl, name, value )
+	local index = getMissNameTableIndex( name )
+	tbl[index] = value
+end
+-- Adds to existing entry
+local function addTableEntry( tbl, name, value )
+	local index = getMissNameTableIndex( name )
+	tbl[index] = tbl[index] + value
+end
+
+
+local function getPlayerStats( stats )
+	eqs:getPlayerStats( stats )
+end
+local function getPlayerILevel()
+	return eqs:getPlayerILevel()
+end
 function eh:enableAddon()
 	ADDON_ENABLED = true
 end
@@ -259,9 +324,9 @@ local function dumpCELU()
 	end
 end
 local function getPlayerInfo()
-	local player = UnitName("Player")
-	local pet = UnitName("Pet")
-	return player, pet
+	local playersName = UnitName("Player")
+	local playersPet = UnitName("Pet")
+	return playersName, playersPet
 end
 -- CHECKS WHETHER THE UNIT IS THE PLAYER OR THE PLAYER'S
 -- PET OR GUARDIAN. RETURNS FALSE IF NOT.
@@ -272,11 +337,11 @@ local function isUnitValid( stats )
 	local targetFlags = stats[EVENT_TARGETFLAGS]
 
 	local unitIsValid = false
-	player, pet = getPlayerInfo()
+	playersName, playersPet = getPlayerInfo()
 	
-	-- is this unit a pet and, if so, does the pet belong to the
+	-- is this unit a playersPet and, if so, does the pet belong to the
 	-- player?
-	if pet ~= nil then
+	if playersPet ~= nil then
 		if isPlayersPet( sourceFlags) or isPlayersPet( targetFlags ) then
 			unitIsValid = true
 		end
@@ -289,7 +354,7 @@ local function isUnitValid( stats )
 	end
 	-- is this unit the source or target of the attack?
 	if unitIsValid == false then
-		if player == sourceName or player == targetName then
+		if playersName == sourceName or playersName == targetName then
 			unitIsValid = true
 		end
 	end
@@ -335,6 +400,7 @@ local function getSchoolDmg( dmgTableIndex )
 	local schoolDmg = schoolDamageTable[dmgTableIndex]
 	return schoolName, schoolDmg
 end
+
 local function reset()
 	COMBAT_START_TIME 	= 0		-- Timestamp of the player's first combat event
 	COMBAT_END_TIME		= 0		-- timestamp of the player's last combat event
@@ -344,25 +410,21 @@ local function reset()
 	STOP_COMBAT			= false
 	CELU_Table			= {}
 	elapsedTime			= 0
-	damageStats 		= {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	damageMitigated 	= { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
-	healingStats 		= {0, 0, 0, 0}
-	schoolDamageTable 	= {0, 0, 0, 0, 0, 0, 0}
-	avoidanceCasts		= {0, 0, 0 }
 	playerCastsMissed 	= 0
 	petCastsMissed		= 0
 	playerCastsHit		= 0
 	petCastsHit			= 0
+	testCasts			= 0
+	testMissedCasts		= 0
 	auraCount			= 0
-	playerInfoTable			= {nil, nil}
-	debuffTable			= {}
-end
-local function getMitigatedDamage()
-	local sum = 0
-	for i = MITIGATED_DMG_BLOCKED, MITIGATED_DMG_RESISTED do
-		sum = sum + damageMitigated[i]
-	end
-	return sum
+	debuffTable				= {}
+	damageAccumTable 		= {0,0,0,0,0,0,0,0,0,0}
+	damageMitigatedByFoe 	= {0,0,0,0,0,0,0,0,0,0}
+	damageMitigatedByFriend = {0,0,0,0,0,0,0,0,0,0}
+	healingStats 			= {0,0,0,0}
+	schoolDamageTable 		= {0,0,0,0,0,0,0}
+	avoidanceCasts 			= {0,0,0}
+	E:where( "testCasts reset to "..tostring(testCasts))
 end
 local function anyDebuffsActive()
 	for i,v in pairs(debuffTable) do
@@ -477,10 +539,9 @@ local function collectHealingStats( stats )
 	end
     return str1..str2..str3
 end
+
 local function collectMissedStats( stats )
 	local subEvent = stats[EVENT_SUBEVENT]
-	local playersName = playerInfoTable[INFO_PLAYER_NAME]
-	local playersPet = playerInfoTable[INFO_PET_NAME]
 
 	-- if not a *_MISSED subevent, then return
 	if subEvent ~= "SPELL_MISSED" and
@@ -489,6 +550,9 @@ local function collectMissedStats( stats )
 	   subEvent ~= "SPELL_PERIODIC_MISSED" then
 		return nil
 	end
+	-- dumpSubEvent( stats )
+	local playersName = GetUnitName("Player")
+	local playersPet = GetUnitName("Pet")
 
 	local sourceName 	= stats[EVENT_SOURCENAME]
 	local target 		= stats[EVENT_TARGETNAME]
@@ -505,16 +569,24 @@ local function collectMissedStats( stats )
 		isCritical		= stats[15]
 	end
 
-	if missType == nil then
-		return nil
-	end
-
+	-- There are 10 kinds of miss types. They are:
+	-- ABSORB, BLOCK, DEFLECT, DODGE, EVADE, IMMUNE, MISS, PARRY, REFLECT, and RESIST
+	if  missType ~= "ABSORB" and
+		missType ~= "BLOCK" and
+		missType ~= "DEFLECT" and
+		missType ~= "DODGE" and
+		missType ~= "EVADE" and
+		missType ~= "IMMUNE" and
+		missType ~= "MISS" and
+		missType ~= "PARRY" and
+		missType ~= "REFLECT" and
+		misstype ~= "RESIST" then
+			mf:postMsg( sprintf("[%s] Unknown miss type - %s\n", E:where(), missType))
+			return
+		end
 	-- Set to 0 if amountMissed is nil
 	if amountMissed == nil then
 		amountMissed = 0
-	end
-	if target == playersName or target == playersPet then
-		damageStats[TOTAL_AVOIDED] = damageStats[TOTAL_AVOIDED] + amountMissed
 	end
 
 	-- Update the player and pet cast counts
@@ -533,45 +605,19 @@ local function collectMissedStats( stats )
 		
 	local logEntry = nil
 
-	if missType == "DEFLECT" then
-		damageMitigated[MITIGATED_DMG_DEFLECTED] = damageMitigated[MITIGATED_DMG_DEFLECTED] + amountMissed
-		logEntry = sprintf("%s's %s DEFLECTED by %s\n", sourceName, spellName, target)
-
-	elseif missType == "IMMUNE" then
-		damageMitigated[MITIGATED_DMG_IMMUNE] = damageMitigated[MITIGATED_DMG_IMMUNE] + amountMissed
-		logEntry = sprintf("%s's %s failed: %s IMMUNE\n", sourceName, spellName, target )
-
-	elseif missType == "REFLECTED" then
-		damageMitigated[MITIGATED_DMG_REFLECTED] = damageMitigated[MITIGATED_DMG_REFLECTED] + amountMissed
-		logEntry = sprintf("%s's %s REFLECTED by %s\n", sourceName, spellName, target )
-
-	elseif missType == "PARRY" then
-		avoidanceCasts[PARRY_COUNT] = avoidanceCasts[PARRY_COUNT] + 1  
-		logEntry = sprintf("%s's %s PARRIED by %s\n", sourceName, spellName, target)
-
-	elseif missType == "MISS" then
-		avoidanceCasts[MISS_COUNT] = avoidanceCasts[MISS_COUNT] + 1  
-		logEntry = sprintf("%s's %s MISSED %s\n", sourceName, spellName, target )
-
-	elseif missType == "DODGE" then
-		avoidanceCasts[DODGE_COUNT] = avoidanceCasts[DODGE_COUNT] + 1  
-		logEntry = sprintf("%s's %s DODGED by %s\n", sourceName, spellName, target )
-
-	elseif missType == "MISS" then
-		avoidanceCasts[MISS_COUNT] = avoidanceCasts[MISS_COUNT] + 1  
-		logEntry = sprintf("%s's %s MISSED %s\n", sourceName, spellName, target )
-	
-	elseif missType ~= "ABSORB" and 
-		   missType ~= "RESIST" and 
-		   missType ~= "BLOCK" and
-		   missType ~= "PARRY" then
-			logEntry = sprintf("Unknown Miss Type, %s (%d damage mitigated)\n", missType )	
+	if amountMissed > 0 then
+		logEntry = sprintf("%s mitigated %d (%s) damage by %s's %s\n", target, amountMissed, missType, sourceName, spellName )
+		if target == playersName or target == playersPet then
+			addTableEntry( damageMitigatedByFriend, missType, amountMissed )
+		end
+	else
+		logEntry = sprintf("%s mitigated all damage (%s) by %s's %s\n", target, missType, sourceName, spellName  )
 	end
 
 	return logEntry
 end
 local function collectDamageStats(stats)
-	local subEvent 		= stats[EVENT_SUBEVENT]
+	local subEvent = stats[EVENT_SUBEVENT]
 
 	if subEvent ~= "SPELL_DAMAGE" and
 	   subEvent ~= "SPELL_PERIODIC_DAMAGE" and
@@ -580,7 +626,8 @@ local function collectDamageStats(stats)
 		return
 	 end
 
-	playersName, playersPet = getPlayerInfo()
+	playersName = GetUnitName("Player")
+	playersPet = GetUnitName("Pet")
 	local targetName 	= stats[EVENT_TARGETNAME]
 	local isRanged 		= false
 	local logEntry		= nil
@@ -591,6 +638,7 @@ local function collectDamageStats(stats)
 	local sourceFlags = stats[EVENT_SOURCEFLAGS]
 	local spellName   = stats[13]
 	local spellSchool = stats[14] -- identical to stats[17]
+
 	local damage      = stats[15] 
 	local overkill    = stats[16] 
 	local schoolIndex = stats[17] -- identical to stats[14]
@@ -601,7 +649,7 @@ local function collectDamageStats(stats)
 	local glancing    = stats[22] 
 	local crushing    = stats[23] 
 	local isOffHand   = stats[24] 
-
+	
 	-- these values are for SWING_DAMAGE. Note that they have different
 	-- indices and so over-write the
 	-- previous values
@@ -618,32 +666,23 @@ local function collectDamageStats(stats)
 		crushing		= stats[20]
 		isOffHand		= stats[21]
 	end
-	
 	if subEvent == "RANGE_DAMAGE" then
 		spellName = "Ranged attack"
 		isRanged = true
 	end
 
-	local playersGuardian = isPlayersGuardian( sourceFlags )
-	if sourceName ~= playersName and
-		targetName ~= playersName and
-		sourceName ~= playersPet and
-		targetName ~= playersPet and
-		playersGuardian ~= true then
-		return
-	end
 	local schoolName = getSpellSchoolName( spellSchool )
 
 	local logStr = nil
 	if isCritical then
-		logStr = sprintf("%s %s's dealt %d critical %s damage to %s", sourceName, spellName, damage, schoolName, targetName )
+		logStr = sprintf("%s's %s dealt %d CRITICAL %s damage to %s", sourceName, spellName, damage, schoolName, targetName )
 	else
 		logStr = sprintf("%s's %s dealt %d %s damage to %s", sourceName, spellName, damage, schoolName, targetName )
 	end
 	if suffix then
 		logStr = logStr..suffix
 	end
-	
+
 	suffix = nil
 	if crushing then
 		suffix = "CRUSHING BLOW"
@@ -668,50 +707,48 @@ local function collectDamageStats(stats)
 	local suffix = nil
 	local netDamage = damage
 	if resisted then
-		damageMitigated[MITIGATED_DMG_RESISTED] = damageMitigated[MITIGATED_DMG_RESISTED] + resisted
-		damageStats[RESISTED] = damageStats[RESISTED] + resisted
-		damageStats[TOTAL_AVOIDED] = damageStats[TOTAL_AVOIDED] + resisted
+		damageMitigated[DMG_RESISTED] = damageMitigated[DMG_RESISTED] + resisted
+		damageAccumTable[RESISTED] = damageAccumTable[RESISTED] + resisted
 		netDamage = damage - resisted
 		suffix = sprintf(" (%d RESISTED)", resisted )
 	end
-	if blocked then
-		damageMitigated[MITIGATED_DMG_BLOCKED] = damageMitigated[MITIGATED_DMG_BLOCKED] + blocked
-		damageStats[BLOCKED] = damageStats[BLOCKED] + blocked
-		damageStats[TOTAL_AVOIDED] = damageStats[TOTAL_AVOIDED] + blocked
-		netDamage = damage - blocked
-		suffix = sprintf(" (%d BLOCKED)", blocked )
-	end
-	if absorbed then
-		damageStats[ABSORBED] = damageStats[ABSORBED] + absorbed
-		damageStats[TOTAL_AVOIDED] = damageStats[TOTAL_AVOIDED] + absorbed
-		netDamage = damage - absorbed
-		suffix = sprintf(" (%d ABSORBED)", absorbed )
-	end
+
+	-- if blocked then
+	-- 	damageMitigated[DMG_BLOCKED] = damageMitigated[DMG_BLOCKED] + blocked
+	-- 	damageAccumTable[BLOCKED] = damageAccumTable[BLOCKED] + blocked
+	-- 	netDamage = damage - blocked
+	-- 	suffix = sprintf(" (%d BLOCKED)", blocked )
+	-- end
+
+	-- if absorbed then
+	-- 	damageAccumTable[DMG_ABSORBED] = damageAccumTable[DMG_ABSORBED] + absorbed
+	-- 	netDamage = damage - absorbed
+	-- 	suffix = sprintf(" (%d ABSORBED)", absorbed )
+	-- end
 
 	-- This conditional ensures that we only collect data caused by
 	-- the player or the player's pet.
-	if sourceName == playersName or sourceName == playersPet then
-		-- accumulate total damage
-		damageStats[ACCUMULATED_DMG] = damageStats[ACCUMULATED_DMG] + netDamage
-		-- accumulate critical damage
-		if isCritical then
-			damageStats[CRITICAL_DMG] = damageStats[CRITICAL_DMG] + netDamage
-		end
-		-- accumulate ranged damage
-		if isRanged then
-			damageStats[RANGED_DMG] = damageStats[RANGED_DMG] + netDamage
-		end
-		-- accumulate pet damage
-		if sourceName == playersPet then
-			damageStats[PET_DMG] = damageStats[PET_DMG] + netDamage
-		end
-		-- accumulate periodic damage
 
+	if sourceName == playersName or sourceName == playersPet then
+		damageAccumTable[ALL_DMG] = damageAccumTable[ALL_DMG] + netDamage
+		if isCritical then
+			damageAccumTable[CRITICAL_DMG] = damageAccumTable[CRITICAL_DMG] + netDamage
+		end
+		if isRanged then
+			damageAccumTable[RANGED_DMG] = damageAccumTable[RANGED_DMG] + netDamage
+		end
+		if sourceName == playersPet then
+			damageAccumTable[PET_DMG] = damageAccumTable[PET_DMG] + netDamage
+		end
 		if subEvent == "SPELL_PERIODIC_DAMAGE" then
-				
-			if sourceName == playersName or sourceName == playersPet then
-				damageStats[NUM_TICKS] = damageStats[NUM_TICKS] + 1
-				damageStats[PERIODIC_DMG] = damageStats[PERIODIC_DMG] + netDamage
+			if sourceName == playersName then
+				damageAccumTable[NUM_TICKS] = damageAccumTable[NUM_TICKS] + 1
+				damageAccumTable[PERIODIC_DMG] = damageAccumTable[PERIODIC_DMG] + netDamage
+			end
+		end
+		if subEvent == "SPELL_DAMAGE" then
+			if sourceName == playersName then
+				damageAccumTable[SPELL_DMG] = damageAccumTable[SPELL_DMG] + netDamage
 			end
 		end
 		accumDmgBySchool( schoolName, netDamage )
@@ -735,20 +772,41 @@ local function collectLeechStats( stats )
 	end
 	return logEntry
 end
+
+-------------------------------------------------------------------------------
+--				Indices into the players combat stats table
+local STAT_STAMINA       = 1
+local STAT_INTELLECT     = 2
+local STAT_HASTE         = 3
+local STAT_CRITSTRIKE    = 4
+local STAT_MASTERY       = 5
+local STAT_AGILITY       = 6
+local STAT_VERSATILITY   = 7
+local FIRST_STAT = STAT_STAMINA
+local LAST_STAT = STAT_VERSATILITY
+
+-------------------------------------------------------------------------------
+
+
 local function summarizeCombat( elapsedTime )
 
-	local totalDamage 		= damageStats[ACCUMULATED_DMG]
-	local criticalDamage 	= damageStats[CRITICAL_DMG]
-	local periodicDamage 	= damageStats[PERIODIC_DMG]
-	local numTicks 			= damageStats[NUM_TICKS]
-	local tickDamage		= damageStats[PERIODIC_DMG]
-	local petDamage 		= damageStats[PET_DMG]
-	local rangedDamage		= damageStats[RANGED_DMG]
-	local resisted			= damageStats[RESISTED]
-	local absorbed			= damageStats[ABSORBED]
-	local blocked			= damageStats[BLOCKED]
+	local totalDamage 		= damageAccumTable[ALL_DMG]
+	local criticalDamage 	= damageAccumTable[CRITICAL_DMG]
+	local periodicDamage 	= damageAccumTable[PERIODIC_DMG]
+	local numTicks 			= damageAccumTable[NUM_TICKS]
+	local tickDamage		= damageAccumTable[PERIODIC_DMG]
+	local petDamage 		= damageAccumTable[PET_DMG]
+	local rangedDamage		= damageAccumTable[RANGED_DMG]
+	local resisted			= damageAccumTable[RESISTED]
+	local absorbed			= damageAccumTable[ABSORBED]
+	local blocked			= damageAccumTable[BLOCKED]
 	local effectiveDamage 	= totalDamage
 	local effectiveDPS		= 0
+	local spellPower		= 0
+	local totalCasts		= playerCastsHit + playerCastsMissed
+
+	E:where( "testCasts "..tostring(testCasts))
+	-- E:where( "testMissedCasts "..tostring(testMissedCasts)..", playerCastsMissed "..tostring(playerCastsMissed ))
 
 	if elapsedTime == 0 then
 		return nil
@@ -756,16 +814,18 @@ local function summarizeCombat( elapsedTime )
 	-- TOTAL DAMAGE
 	local summaryLine = {}
 	local totalDPS = totalDamage/elapsedTime
-	if (playerCastsHit + playerCastsMissed ) > 0 then
+	if totalCasts > 0 then
 		effectiveDamage = totalDamage * (playerCastsHit/ (playerCastsHit + playerCastsMissed))
 	end
 	effectiveDPS = effectiveDamage/elapsedTime
 
-	local s = sprintf("Total casts %d, Successful casts %d, Missed casts %d\n", playerCastsHit+playerCastsMissed, playerCastsHit, playerCastsMissed )
+	spellPower = damageAccumTable[SPELL_DMG] + damageAccumTable[PERIODIC_DMG] / totalCasts
+
+	local s = sprintf("Total casts %d, Successful casts %d, Missed casts %d\n", totalCasts, playerCastsHit, playerCastsMissed )
 	if playerCastsMissed > 0 then
-		summaryLine[1] = sprintf("\n%d Total Damage (%.02f DPS, %.02f Effective DPS).\n", totalDamage, totalDPS, effectiveDPS )
+		summaryLine[1] = sprintf("\n%.01f Spell Power, %d Total Damage (%.02f DPS, %.02f Effective DPS).\n", spellPower, totalDamage, totalDPS, effectiveDPS )
 	else
-		summaryLine[1] = sprintf("\n%d total damage (%.02f DPS).\n", totalDamage, totalDPS )
+		summaryLine[1] = sprintf("\n%.01f Spell Power, %d total damage (%.02f DPS).\n", spellPower, totalDamage, totalDPS )
 	end
 
 	-- CRITICAL DAMAGE
@@ -802,42 +862,52 @@ local function summarizeCombat( elapsedTime )
 	else
 		summaryLine[5] = nil
 	end
-	
-	-- DAMAGE RESISTED OR BLOCKED
-	local mitigatedDmg = getMitigatedDamage()
+	-- MISSED CASTS (SPELL_MISSED SUBEVENTS)
+	local mitigated = {}
+	local totalMitigatedDmg = 0
+	for i = FIRST_MISS, LAST_MISS do
+		local nvp = {getTableEntry( damageMitigatedByFriend, i)}
+		mitigated[i] = nvp
+		if nvp[2] > 0 then
+			totalMitigatedDmg = totalMitigatedDmg + nvp[2]
+		end
+	end
+		-- local damageMitigatedByFoe = getMitigatedDamageByFoe()
+	-- local damageMitigatedByFriend = getMitigatedDamageByFriend()
 
 	percentOfTotal = 0
-	if mitigatedDmg > 0 then
-		local percentMitigatedDmg = mitigatedDmg/totalDamage*100
-		summaryLine[6] = sprintf("Damage Resisted or Blocked by Target: %d (%.02f%% of total damage)\n", mitigatedDmg, percentMitigatedDmg  )
-	else
-		summaryLine[6] = nil
-	end
-	percentOfTotal = 0
-	if absorbed > 0 then
-		percentOfTotal = (absorbed/totalDamage) * 100
-		summaryLine[7] = sprintf("%d damage absorbed by %s (%.02f%%)\n", absorbed, playersName, percentOfTotal)
-	else
-		summaryLine[7] = nil
-	end
-	percentOfTotal = 0
-	if blocked > 0 then
-		percentOfTotal = (blocked/totalDamage) * 100
-		summaryLine[8] = sprintf("%d damage BLOCKED (%.02f%%)\n", blocked, percentOfTotal)
-	else
-		summaryLine[8] = nil
-	end
+ 	summaryLine[8] = sprintf("Total damage mitigated by %s (including pet): %d\n", playersName, totalMitigatedDmg )
+
+	
+	-- if damageMitigated > 0 then
+	-- 	local percentMitigatedDmg = damageMitigated/totalDamage*100
+	-- 	summaryLine[6] = sprintf("Damage Resisted or Blocked by Target: %d (%.02f%% of total damage)\n", damageMitigated, percentMitigatedDmg  )
+	-- else
+	-- 	summaryLine[6] = nil
+	-- end
+	-- percentOfTotal = 0
+	-- if absorbed > 0 then
+	-- 	percentOfTotal = (absorbed/totalDamage) * 100
+	-- 	summaryLine[7] = sprintf("%d damage absorbed by %s (%.02f%%)\n", absorbed, playersName, percentOfTotal)
+	-- else
+	-- 	summaryLine[7] = nil
+	-- end
+	-- percentOfTotal = 0
+	-- if blocked > 0 then
+	-- 	percentOfTotal = (blocked/totalDamage) * 100
+	-- 	summaryLine[8] = sprintf("%d damage BLOCKED (%.02f%%)\n", blocked, percentOfTotal)
+	-- else
+	-- 	summaryLine[8] = nil
+	-- end
 
 	cl:postLogEntry( sprintf("\n*** COMBAT SUMMARY ***\n"))
 	local s = sprintf("Combat Ended After %.02f seconds\n", elapsedTime )
 	cl:postLogEntry(s )
-
 	for i =1, 8 do
 		if summaryLine[i] ~= nil then
 			cl:postLogEntry( summaryLine[i])
 		end
 	end
-
 	-- 	DAMAGE BY SCHOOL
 	local schoolDmgEntry = {nil, nil, nil, nil, nil, nil, nil}
 	n = 0
@@ -851,18 +921,15 @@ local function summarizeCombat( elapsedTime )
 			schoolDmgEntry[n] = nil
 		end
 	end
-
 	local dodgeCount = avoidanceCasts[DODGE_COUNT]
 	local parryCount = avoidanceCasts[PARRY_COUNT]
 	local missCount  = avoidanceCasts[MISS_COUNT]
 	totalAvoidanceCasts = dodgeCount + parryCount + missCount
-
-	local defenseStr = sprintf("No failed casts (missed, dodged, or parried\n")
-	if totalAvoidanceCasts > 0 then
-		defenseStr = sprintf("%d Mitigated Attacks: %d Missed, %d Dodged, %d Parried\n", totalAvoidanceCasts, missCount, dodgeCount, parryCount )
-	end
+	local defenseStr = sprintf("%s experienced no failed casts (missed, dodged, or parried\n", playersName )
+	-- if totalAvoidanceCasts > 0 then
+	-- 	defenseStr = sprintf("%d Mitigated Attacks: %d Missed, %d Dodged, %d Parried\n", totalAvoidanceCasts, missCount, dodgeCount, parryCount )
+	-- end
 	cl:postLogEntry( defenseStr )
-
 	local s = "Damage by School"
 	cl:postLogEntry( sprintf("-- %s\n", s ))
 	for i = PHYSICAL, ARCANE do
@@ -915,32 +982,28 @@ function( self, event, ... )
 	if event == "ADDON_LOADED" and arg1 == "DPS_Tracker" then
 		printMsg( L["ADDON_LOADED_MSG"])
 	end
-	if event == "PLAYER_ENTERING_WORLD" then 
-		eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-		return
-	end
 	if event == "PLAYER_LOGIN" then
 		-- Init everything: this is where the magic happens
-		player, pet = getPlayerInfo()
+		playersName, playersPet = getPlayerInfo()
 		return
 	end
 	if event == "PLAYER_REGEN_DISABLED" then
 		PLAYER_IN_COMBAT = true
 			
-		player, pet = getPlayerInfo()
-		if pet == nil then
-			printMsg( sprintf("%s entered combat.\n", player ) )
+		playersName, playersPet = getPlayerInfo()
+		if playersPet == nil then
+			printMsg( sprintf("%s entered combat.\n", playersName ) )
 		else
-			printMsg( sprintf("%s and %s entered combat.\n", player, pet ) )
+			printMsg( sprintf("%s and %s entered combat.\n", playersName, playersPet ) )
 		end
 	end
 	if event == "PLAYER_REGEN_ENABLED" then
 			PLAYER_IN_COMBAT = false
-			local player, pet = getPlayerInfo()
-			if pet == nil then
-				printMsg( sprintf("%s exited combat.\n", player ) )
+			local playersName, playersPet = getPlayerInfo()
+			if playersPet == nil then
+				printMsg( sprintf("%s exited combat.\n", playersName ) )
 			else
-				printMsg( sprintf("%s and %s exited combat.\n", player, pet ) )
+				printMsg( sprintf("%s and %s exited combat.\n", playersName, playersPet ) )
 			end
 			local logging = cl:isCombatLoggingEnabled()
 			if logging == false then
@@ -989,9 +1052,9 @@ function( self, event, ... )
 			return
 		end
 					
-		if PLAYER_IN_COMBAT == false or PLAYER_DEAD then
-			return
-		end
+		-- if PLAYER_IN_COMBAT == false or PLAYER_DEAD then
+		-- 	return
+		-- end
 		-- return if this unit (pet, player, guardian) is not the source or target of the attack.
 		if isUnitValid( stats ) == false then
 			return
@@ -1006,12 +1069,22 @@ function( self, event, ... )
 		COMBAT_END_TIME 	= stats[EVENT_TIMESTAMP]
 		elapsedTime 		= COMBAT_END_TIME - COMBAT_START_TIME
 
-		-- Insert event into the CELU table
-		-- if DUMP_COMBAT_LOG then
-		-- CELU_Table[COMBAT_EVENT_COUNT] = stats
-		-- end
-
+		local playersName = GetUnitName("Player")
+		if stats[EVENT_SOURCENAME] ~= playersName then
+			return
+		end
 		--				PROCESS ALL DAMAGE EVENTS
+		if subEvent == "SPELL_CAST_MISS" then
+			testMissedCasts = testMissedCasts + 1
+		end
+		if subEvent == "SPELL_CAST_SUCCESS" then -- track periodic damage casts, not their ticks
+			testCasts = testCasts + 1
+			print( subEvent..", "..tostring(testCasts) )
+		elseif subEvent == "SPELL_DAMAGE" then
+			testCasts = testCasts + 1
+			print( subEvent..", "..tostring(testCasts) )
+		end
+   
 		logEntry = collectDamageStats( stats )
 		if logEntry ~= nil then
 			cl:postLogEntry( logEntry )
@@ -1044,14 +1117,6 @@ function( self, event, ... )
 		logEntry = collectHealingStats( stats )
 		if logEntry ~= nil then
 			cl:postLogEntry( logEntry )
-			return
-		end
-		--				PROCESS UNIT DIED
-		if subEvent == "UNIT_DIED" then
-			-- recapLink = GetDeathRecapLink( stats[12])
-			-- dumpSubEvent( stats )
-			PLAYER_DEAD = true
-			cl:postLogEntry( sprintf("%s has died\n", stats[EVENT_TARGETNAME] ))
 			return
 		end
 	end
@@ -1118,6 +1183,7 @@ SlashCmdList["DPS_TRACKER"] = function( msg )
 	end
 
 	msg = string.upper( msg )
+
 	if msg == "HELP" then
 		postHelpMsg( helpMsg )
 	elseif msg == "SHOW" then
@@ -1139,3 +1205,57 @@ SlashCmdList["DPS_TRACKER"] = function( msg )
 		postHelpMsg( s..helpMsg )
 	end
 end
+
+-- local function test()
+-- 	for i = FIRST_MISS, LAST_MISS do
+-- 		E:where( tostring(i))
+-- 		if i == MISS_DEFLECT then
+-- 			local missName = getMissTypeName( i )
+-- 			local value = 81
+-- 			E:where( missName..", "..tostring(value))
+-- 			insertTableEntry( damageMitigatedByFoe, missName, value )
+-- 			local name, value = getTableEntry( damageMitigatedByFoe,i)
+-- 			mf:postMsg( sprintf( "[%s, %d]\n", missName, i ))
+-- 		end
+-- 		-- local missName = getMissTypeName( i )
+-- 		-- insertTableEntry( damageMitigatedByFoe, missName, i )
+-- 		-- mf:postMsg( sprintf( "[%s, %d]\n", missName, i ))
+-- 	end
+-- 	-- mf:postMsg( sprintf("\n"))
+-- 	-- for i = FIRST_MISS, LAST_MISS do
+-- 	-- 	local name, value = getTableEntry( damageMitigatedByFoe, i )
+-- 	-- 	mf:postMsg( sprintf( "[%s, %d]\n", name, value ))
+-- 	-- end
+-- end
+-- test1()
+
+-- local function test2()
+-- 	-- populate the mitigation table with data
+-- 	for i = FIRST_MISS, LAST_MISS do
+-- 		local missName = getMissTypeName(i)
+-- 		local value = random( 0, 10 )
+-- 		insertTableEntry( damageMitigatedByFoe, missName, value )
+-- 		local n,v = getTableEntry( damageMitigatedByFoe, i )
+-- 		mf:postMsg( sprintf( "[%s, %d]\n", n, v ))	
+-- 	end
+-- 	mf:postMsg( sprintf( "\n"))	
+
+-- 	for i = FIRST_MISS, LAST_MISS do
+-- 		local name, value = getTableEntry( damageMitigatedByFoe, i )
+-- 		mf:postMsg( sprintf( "[%s, %d]\n", name, value ))	
+-- 	end
+-- 	mf:postMsg( sprintf( "\n"))	
+	
+-- 	for i = FIRST_MISS, LAST_MISS do
+-- 		local missName = getMissTypeName(i)
+-- 		local value = random( 0, 10 )
+-- 		addTableEntry( damageMitigatedByFoe, missName, value )
+-- 		local n,v = getTableEntry( damageMitigatedByFoe, i )
+-- 		mf:postMsg( sprintf( "[%s, %d]\n", n, v ))	
+-- 	end
+
+
+-- end
+-- test2()
+
+
