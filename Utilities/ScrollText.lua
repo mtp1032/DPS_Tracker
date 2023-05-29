@@ -33,7 +33,7 @@ local function createNewFrame()
 	f:SetSize(5, 5)
 	f:SetPoint( "CENTER", 0, 0 )
 	f.Text = f:CreateFontString("Bazooka")
-	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\Fonts\\Bazooka.ttf", 16 )
+	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\Fonts\\Bazooka.ttf", 32 )
 	f.Text:SetPoint( "CENTER" )
 	f.Text:SetJustifyH("LEFT")
 	f.Text:SetJustifyV("TOP")
@@ -99,7 +99,6 @@ local function getStartingPositions( combatType )
 	return MISS_STARTX, MISS_XDELTA, MISS_STARTY, MISS_YDELTA
 	end
 end
-
 local function scrollText(f, startX, xDelta, startY, yDelta )
 	local xPos = startX
 	local yPos = startY
@@ -117,18 +116,18 @@ local function scrollText(f, startX, xDelta, startY, yDelta )
 		if f.TotalTicks == 4 then 
 			xPos = xPos + xDelta
 			yPos = yPos + yDelta
-		elseif f.TotalTicks == 10 then 
+		-- elseif f.TotalTicks == 10 then 
+		-- 	xPos = xPos + xDelta
+		-- 	yPos = yPos + yDelta
+		elseif f.TotalTicks == 24 then
 			xPos = xPos + xDelta
 			yPos = yPos + yDelta
-		elseif f.TotalTicks == 20 then
-			xPos = xPos + xDelta
-			yPos = yPos + yDelta
-		elseif f.TotalTicks == 30 then 
-			xPos = xPos + xDelta
-			yPos = yPos + yDelta
-		elseif f.TotalTicks == 40 then
-			xPos = xPos + xDelta
-			yPos = yPos + yDelta
+		-- elseif f.TotalTicks == 30 then 
+		-- 	xPos = xPos + xDelta
+		-- 	yPos = yPos + yDelta
+		-- elseif f.TotalTicks == 40 then
+		-- 	xPos = xPos + xDelta
+		-- 	yPos = yPos + yDelta
 		end	
 
 		if f.TotalTicks <=  20 then 	-- move the frame
@@ -141,7 +140,7 @@ local function scrollText(f, startX, xDelta, startY, yDelta )
 			f.TotalTicks = 0
 			f.Text:SetText("")
 			if f.IsCrit then
-				f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 16 )
+				f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 48 )
 			end
 			f:ClearAllPoints()
 			f:SetPoint( "CENTER", 0, 0 )
@@ -152,7 +151,6 @@ local function scrollText(f, startX, xDelta, startY, yDelta )
 		end
 	end)
 end
-
 function scroll:damageEntry( isCrit, floatingText )
 	local f = acquireFrame()
 	f.Text:SetTextColor( 1.0, 0.0, 0.0 )	-- red
@@ -162,10 +160,10 @@ function scroll:damageEntry( isCrit, floatingText )
 	local startX, xDelta, startY, yDelta = getStartingPositions( DAMAGE_EVENT )
 	local xPos 		= startX
 	local yPos 		= startY
-	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 16 )
+	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 32 )
 	if f.IsCrit then
 		f.Alpha	= 0.9
-		f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 32 )
+		f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 40 )
 		yDelta 	= 6
 		xDelta	= 6
 		xPos	= xPos + 25
@@ -201,7 +199,6 @@ function scroll:healEntry( isCrit, floatingText )
 end
 function scroll:auraEntry( auraStr )
 	local f = acquireFrame()
-	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 16 )
 	f.Text:SetTextColor( 1.0, 1.0, 0.0 )  -- yellow
 	f.Text:SetText( auraStr )
 
@@ -228,8 +225,8 @@ function scroll:missEntry( missString )
 	f:SetPoint("CENTER", xPos, yPos )
 	scrollText(f, xPos, xDelta, startY, yDelta)
 end
-initFramePool()
 
+initFramePool()
 local fileName = "ScrollText.lua"
 if base:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded.", fileName ), 1.0, 1.0, 0.0 )
