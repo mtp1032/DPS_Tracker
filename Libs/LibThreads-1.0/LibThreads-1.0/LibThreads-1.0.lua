@@ -1,10 +1,12 @@
 --------------------------------------------------------------------------------------
 -- FILE NAME:       LibThreads-1.0.lua 
 -- AUTHOR:          Michael Peterson
--- ORIGINAL DATE:   23 May, 2023
+-- ORIGINAL DATE:   25 May, 2023
+
 --------------------------------------------------------------------------------------
 --      This is the public interface to WoWThreads.                                 --
 --------------------------------------------------------------------------------------
+
 local _, WoWThreads = ...
 
 -- Establish LibThreads
@@ -22,7 +24,11 @@ lib.SIG_TERMINATE        = dispatch.SIG_TERMINATE
 lib.SIG_METRICS          = dispatch.SIG_METRICS
 lib.SIG_NONE_PENDING     = dispatch.SIG_NONE_PENDING
 
-local SUCCESS = core.SUCCESS
+lib.SUCCESS     = core.SUCCESS
+lib.EMPTY_STR   = core.EMPTY_STR
+
+local SUCCESS   = lib.SUCCESS
+local EMPTY_STR = lib.EMPTY_STR
 
 local function validateThreadHandle( thread_h )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
@@ -150,7 +156,7 @@ function lib:areEqual( th1, th2 )
 end
 -- DESCRIPTION: gets the specified thread's parent
 -- RETURNS: (handle) parent_h, result
-function lib:getParentThread( thread_h )
+function lib:getParent( thread_h )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     -- if thread_h is nil then this is equivalent to "getMyParent"
@@ -158,7 +164,10 @@ function lib:getParentThread( thread_h )
         thread_h = dispatch:getRunningHandle()
     else
         result = dispatch:checkIfHandleValid( thread_h ) 
-        if not result[1] then return result end
+    end
+    if not result[1] then 
+        core:dbgPrint()
+        return nil, result 
     end
 
     local parent_h = dispatch:getThreadParent( thread_h )
@@ -220,7 +229,7 @@ function lib:sendSignal( thread_h, signal )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     if thread_h == nil then
-        result = core:setResult( L["THREAD_HANDLE_NIL"], debugstack(1) )
+        result = core:setResult( L["THREAD_HANDLE_NIL"], debugstack(2) )
         return result
     end
     result = validateThreadHandle( thread_h )

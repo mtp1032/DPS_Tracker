@@ -132,14 +132,14 @@ local function scheduleThreads()
                 -- replenish the remaining ticks counter and resume this thread.
                 H[TH_REMAINING_TICKS] = H[TH_TICKS_PER_YIELD]
 
-                -- now resume the thread. NOTE: under some circumstataces a thread will
+                -- NOTE: under some circumstataces a thread will
                 -- complete and be signaled before we can set the thread's state. So, if
                 -- we find a thread at this point in the loop through the TCB, we
                 -- move the thread from the TCB to the graveyard.
                 local wasResumed, retValue = coroutine.resume( H[TH_EXECUTABLE_IMAGE] )
                 if not wasResumed then
                     local errMsg = sprintf("Thread[%d] faulted in the thread's function: Stack trace follows:\n%s\n", H[TH_SEQUENCE_ID], retValue )
-                    mf:postMsg( errMsg )
+                    print( errMsg )
                     local state = coroutine.status( H[TH_EXECUTABLE_IMAGE])
                     if state == "dead" then
                         -- remove from TCB
@@ -159,7 +159,7 @@ local function scheduleThreads()
         end
     end
 end
--- RETURNS: string representation of specified coroutine
+-- RETURNS: The first 14 chars of thestring representation of specified coroutine
 local function getCoroutineAddressId( co )
     return string.sub( tostring( H[TH_EXECUTABLE_IMAGE] ), 14 )
 end

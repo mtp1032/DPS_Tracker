@@ -2,7 +2,6 @@
 -- FILE NAME:		Core.lua
 -- AUTHOR:          Michael Peterson
 -- ORIGINAL DATE:   25 May, 2023
-print("0")
 local _, WoWThreads = ...
 WoWThreads.Core = {} 
 core = WoWThreads.Core
@@ -13,7 +12,6 @@ core.EMPTY_STR 		= ""
 core.SUCCESS 		= true
 core.FAILURE 		= false
 local C				= core
-print("15")
 core.DEBUGGING_ENABLED           = true
 core.DATA_COLLECTION_ENABLED     = false
 
@@ -47,7 +45,6 @@ local function setExpansionName()
 	end
 	return core.EXPANSION_LEVEL, core.EXPANSION_NAME
 end
-print("40")
 core.EXPANSION_LEVEL, core.EXPANSION_NAME = setExpansionName()
 
 local function getAddonName()
@@ -138,45 +135,37 @@ function core:displayInfoMsg( msg )
 	UIErrorsFrame:AddMessage( msg, 0.0, 1.0, 0.0, 20 ) 
 end
 -- RETURNS: boolean true if enabled, false otherwise
-C:dbgPrint()
 function core:dataCollectionIsEnabled()
     return DATA_COLLECTION_ENABLED
 end
-C:dbgPrint()
 function core:enableDataCollection()
     DATA_COLLECTION_ENABLED = true
     DEFAULT_CHAT_FRAME:AddMessage( "Performance Data Collection is Now ENABLED", 0.0, 1.0, 1.0 )
 end
-C:dbgPrint()
 function core:disableDataCollection()
     DATA_COLLECTION_ENABLED = false  
     DEFAULT_CHAT_FRAME:AddMessage( "Performance Data Collection is Now DISABLED", 0.0, 1.0, 1.0 )
 end
-C:dbgPrint()
 function core:enableDebugging()
 	DEBUGGING_ENABLED = true
 	DEFAULT_CHAT_FRAME:AddMessage( "Debugging is Now ENABLED", 0.0, 1.0, 1.0 )
 end
-C:dbgPrint()
 function core:disableDebugging()
 	DEBUGGING_ENABLED = false
 	DEFAULT_CHAT_FRAME:AddMessage( "Debugging is Now DISABLED", 0.0, 1.0, 1.0 )
 end
-C:dbgPrint()
 function core:debuggingIsEnabled()
 	return DEBUGGING_ENABLED
 end
 -- Rounds up to integer
-C:dbgPrint()
 function core:roundUp( num)
     return math.ceil( num )
 end
-C:dbgPrint()
 local fileName = "Core.lua"
 if core:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded", fileName), 1.0, 1.0, 0.0 )
 end
-
+--[[ 
 local function bottom()
 	local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
 	result = core:setResult( "Failed in some way", debugstack() )
@@ -194,3 +183,4 @@ end
 local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 local result = top()
 if not result[1] then core:postResult( result ) end
+ ]]
