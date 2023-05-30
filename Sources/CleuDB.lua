@@ -759,7 +759,6 @@ local function insertCleuStats( stats ) -- signals damage, heal, aura, and miss 
 	if remainingDmg == nil then return result end
 
 	if remainingDmg <= 0 then
-		dbg:print()
 		local elapsedTime = stats[TIMESTAMP] - startOfCombat			
 		initEncounterDB( elapsedTime )
 		resetCombatState()

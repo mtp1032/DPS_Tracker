@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------------------
--- FILE NAME:		EnUS-WoWThreads.lua
--- AUTHOR:          Michael Peterson
--- ORIGINAL DATE:   25 May, 2023
+-- EnUS-WoWThreads.lua
+-- AUTHOR: mtpeterson1948 at gmail dot com
+-- ORIGINAL DATE: 10 October, 2022
 ----------------------------------------------------------------------------------------
 local _, WoWThreads = ...
 WoWThreads.EnUS = {}
