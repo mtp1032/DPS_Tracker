@@ -14,7 +14,7 @@ local L = DPS_Tracker.L
 -- https://wow.gamepedia.com/EdgeFiles
 
 local DEFAULT_FRAME_WIDTH = 600
-local DEFAULT_FRAME_HEIGHT = 400
+local DEFAULT_FRAME_HEIGHT = 200
 
 --------------------------------------------------------------------------
 --                         CREATE THE VARIOUS BUTTONS
@@ -117,7 +117,7 @@ local function createTextDisplay(f)
     --                  Now create the EditBox
     f.Text = CreateFrame("EditBox", nil, f)
     f.Text:SetMultiLine(true)
-    f.Text:SetSize(DEFAULT_FRAME_WIDTH - 20, DEFAULT_FRAME_HEIGHT )
+    f.Text:SetSize(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT/2 )
     f.Text:SetPoint("TOPLEFT", f.SF)    -- ORIGINALLY TOPLEFT
     f.Text:SetPoint("BOTTOMRIGHT", f.SF) -- ORIGINALLY BOTTOMRIGHT
     f.Text:SetMaxLetters(99999)

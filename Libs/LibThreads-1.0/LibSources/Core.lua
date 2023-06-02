@@ -2,7 +2,6 @@
 -- FILE NAME:		Core.lua
 -- AUTHOR:          Michael Peterson
 -- ORIGINAL DATE:   25 May, 2023
-print("0")
 local _, WoWThreads = ...
 WoWThreads.Core = {} 
 core = WoWThreads.Core
@@ -13,7 +12,6 @@ core.EMPTY_STR 		= ""
 core.SUCCESS 		= true
 core.FAILURE 		= false
 local C				= core
-print("15")
 core.DEBUGGING_ENABLED           = true
 core.DATA_COLLECTION_ENABLED     = false
 
@@ -47,7 +45,6 @@ local function setExpansionName()
 	end
 	return core.EXPANSION_LEVEL, core.EXPANSION_NAME
 end
-print("40")
 core.EXPANSION_LEVEL, core.EXPANSION_NAME = setExpansionName()
 
 local function getAddonName()
@@ -168,21 +165,22 @@ local fileName = "Core.lua"
 if core:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded", fileName), 1.0, 1.0, 0.0 )
 end
+--[[ 
+local function bottom()
+	local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
+	result = core:setResult( "Failed in some way", debugstack() )
+	return result
+end
+local function middle()
+	local result = bottom()
+	return result
+end
+local function top()
+	local result = middle()
+	return result
+end
 
--- local function bottom()
--- 	local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
--- 	result = core:setResult( "Failed in some way", debugstack() )
--- 	return result
--- end
--- local function middle()
--- 	local result = bottom()
--- 	return result
--- end
--- local function top()
--- 	local result = middle()
--- 	return result
--- end
-
--- local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
--- local result = top()
--- if not result[1] then core:postResult( result ) end
+local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
+local result = top()
+if not result[1] then core:postResult( result ) end
+ ]]

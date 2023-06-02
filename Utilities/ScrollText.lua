@@ -159,10 +159,10 @@ function scroll:damageEntry( isCrit, dmgText )
 	local startX, xDelta, startY, yDelta = getStartingPositions( DAMAGE_EVENT )
 	local xPos 		= startX
 	local yPos 		= startY
-	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 32 )
+	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\Fonts\\Bazooka.ttf", 32 )
 	if f.IsCrit then
 		f.Alpha	= 0.9
-		f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 40 )
+		f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\Fonts\\Bazooka.ttf", 40 )
 		yDelta 	= 6
 		xDelta	= 6
 		xPos	= xPos + 25
@@ -182,10 +182,10 @@ function scroll:healEntry( isCrit, healText )
 	local startX, xDelta, startY, yDelta = getStartingPositions( HEALING_EVENT )
 	local xPos 		= startX
 	local yPos 		= startY
-	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 16 )
+	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\Fonts\\Bazooka.ttf", 32 )
 	if f.IsCrit then
 		f.Alpha	= 0.9
-		f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 32 )
+		f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\Fonts\\Bazooka.ttf", 32 )
 		yDelta 	= 6
 		xDelta	= -6
 		xPos	= xPos + 25
@@ -212,7 +212,7 @@ function scroll:auraEntry( auraText )
 end
 function scroll:missEntry( missText )
 	local f = acquireFrame()
-	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\LibFonts\\Bazooka.ttf", 24 )
+	f.Text:SetFont( "Interface\\Addons\\DPS_Tracker\\Fonts\\Bazooka.ttf", 24 )
 	f.Text:SetTextColor( 1.0, 1.0, 1.0 )  -- white
 	f.Text:SetText( missText )
 

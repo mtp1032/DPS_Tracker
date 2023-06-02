@@ -647,7 +647,7 @@ function cleu:summarizeEncounter() -- called from SLASH_COMMAND. See CommandLine
 		local dmgStrings = encounter[2]
 		mf:postMsg( encounter[1] )
 		for j = 1, #dmgStrings do
-			mf:postMsg( "     " .. dmgStrings[j])
+			mf:postMsg( " " .. dmgStrings[j])
 		end
 	end
 end
@@ -724,7 +724,6 @@ local function insertCleuStats( stats ) -- signals damage, heal, aura, and miss 
 	table.insert( cleuStatsDB, stats ) 
 
 	if isDamageSubEvent( stats ) then
-
 		if startOfCombat == 0 then
 			startOfCombat = stats[TIMESTAMP]
 		end
@@ -928,20 +927,6 @@ end
 function cleu:isScrollingMissesEnabled()
 	return DISPLAY_MISSES_ENABLED
 end
-
-
-function cleu:showCombatEventLog()
-	combatEventLog:Show()
-end
-function cleu:hideCombatEventLog()
-	combatEventLog:Hide()
-end
-function cleu:clearCombatEventLog()
-	combatEventLog.Text:EnableMouse( false )    
-	combatEventLog.Text:EnableKeyboard( false )   
-	combatEventLog.Text:SetText("") 
-	combatEventLog.Text:ClearFocus()
-end
 --============================= BEGIN SIGNAL SERVICES
 function cleu:getDmgString()
 	local numEntries = #damageStringsDB
@@ -991,34 +976,6 @@ end
 local function isPlayerType( flags )
 	return bit.band( flags, COMBATLOG_OBJECT_TYPE_MASK ) == bit.band( flags, COMBATLOG_OBJECT_TYPE_PLAYER )
 end
-local function isPlayersGuardian( sourceFlags, targetFlags )
-	local isMine = false
-
-	-- print( dbg:prefix(), bit.band( sourceFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN))
-	-- print( dbg:prefix(), bit.band( targetFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN))
-
-	-- print( dbg:prefix(), CombatLog_Object_IsA( sourceFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN ))
-	-- print( dbg:prefix(), CombatLog_Object_IsA( targetFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN ))
-	return false
-
-
-
-	-- dbg:printx( dbg:prefix(), sourceFlags, targetFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN )
-
-	-- if CombatLog_Object_IsA( sourceFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN ) then
-	-- 	isMine = CombatLog_Object_IsA( sourceFlags, COMBATLOG_OBJECT_CONTROL_PLAYER)
-	-- 	dbg:printx( dbg:prefix(), isMine )
-	-- end
-	-- if isMine == true then return isMine end
-
-	-- if CombatLog_Object_IsA( targetFlags, COMBATLOG_OBJECT_TYPE_GUARDIAN ) then
-	-- 	isMine = CombatLog_Object_IsA( targetFlags, COMBATLOG_OBJECT_CONTROL_PLAYER)
-	-- 	dbg:printx( dbg:prefix(), isMine )
-	-- end
-
-	-- dbg:printx( dbg:prefix(), isMine )
-	-- return isMine
-end
 local function isPlayersPet( flags )
 	if isPetType( flags ) == false then
 		return false
@@ -1027,44 +984,6 @@ local function isPlayersPet( flags )
 end
 -- CHECKS WHETHER THE UNIT IS THE PLAYER OR THE PLAYER'S
 -- PET OR GUARDIAN. RETURNS FALSE IF NOT.
-local function isUnitValidXX( stats )		
-	local sourceName = stats[SOURCENAME]
-	local sourceFlags = stats[SOURCEFLAGS]
-	local targetName = stats[TARGETNAME]
-	local targetFlags = stats[TARGETFLAGS]
-	local subEvent = stats[SUBEVENT]
-	local isValid = true
-
-	-- is this unit the source or target of the attack?
-	-- if PLAYER_NAME == sourceName then
-	-- 	isValid = true
-	-- end
-	-- if isValid then return isValid end
-
-	-- if PLAYER_PET == sourceName then
-	-- 	local n = bit.band(stats[SOURCEFLAGS], COMBATLOG_OBJECT_TYPE_PET )
-	-- 	local m = bit.band( stats[SOURCEFLAGS], COMBATLOG_OBJECT_AFFILIATION_MINE)
-	-- 	print( dbg:prefix(), n, m ) -- n == 4096, m == 1
-	-- 	isValid = true
-	-- end
-	-- if isValid then return isValid end
-
-	local n = bit.band(stats[SOURCEFLAGS], COMBATLOG_OBJECT_TYPE_GUARDIAN )
-	local m = bit.band( stats[SOURCEFLAGS], COMBATLOG_OBJECT_AFFILIATION_MINE)
-	-- print( dbg:prefix(), "Warlock Imp", n, m ) -- Warlock minion: n == 4096, m == 1
-	-- print( dbg:prefix(), "Mage Water Elemental", n, m ) -- Mage Water elementsl: n == 4096, m == 1 
-	-- print( dbg:prefix(), "Priest Shadowfiend", n, m ) -- Priest Shadowfiend: n == 4096, m == 1 
-	print( dbg:prefix(), "Warlock Darkglare", n, m)  -- Warlock Darkglare: n == 8192, m == 
-
-
-	-- print( dbg:prefix(), n, m, stats[SOURCENAME], stats[SUBEVENT])
-	local n = bit.band(stats[SOURCEFLAGS], COMBATLOG_OBJECT_TYPE_GUARDIAN )
-	if n == 8192 or n == 4096 then
-		local m = bit.band( stats[SOURCEFLAGS], COMBATLOG_OBJECT_AFFILIATION_MINE)
-		isValid = true
-	end
-	return isValid
-end
 local function isUnitValid( stats )	-- checks that the unit is the player or the player's pet or guardien	
 	local isValid = false
 

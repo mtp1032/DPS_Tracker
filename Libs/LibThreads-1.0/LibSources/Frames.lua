@@ -3,12 +3,11 @@
 -- AUTHOR: Michael Peterson
 -- ORIGINAL DATE: 16 April, 2023
 --------------------------------------------------------------------------------------
-print("0")
 local _, WoWThreads = ...
 WoWThreads.Frames = {}
 frames = WoWThreads.Frames
 local sprintf = _G.string.format
-local L = WoWThreads.L
+-- local L = WoWThreads.L
 
 -- https://us.forums.blizzard.com/en/wow/t/addons-now-usable-in-shadowlands-beta/586355/16
 -- https://wow.gamepedia.com/API_Frame_SetBackdrop
@@ -16,7 +15,6 @@ local L = WoWThreads.L
 
 local DEFAULT_FRAME_WIDTH = 600
 local DEFAULT_FRAME_HEIGHT = 400
-print("2")
 
 --------------------------------------------------------------------------
 --                         CREATE THE VARIOUS BUTTONS

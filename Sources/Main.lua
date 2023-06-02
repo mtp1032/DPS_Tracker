@@ -58,7 +58,7 @@ local function damageThreadFunc()   -- action routine for the damage_h thread
         end
         if signal == SIG_TERMINATE then
             DONE = true
-        end                
+        end  
     end
     DEFAULT_CHAT_FRAME:AddMessage( sprintf("Damage thread terminated." ))
 end
@@ -181,7 +181,6 @@ local function main()
     miss_h, result = thread:create( yieldInterval, missThreadFunc )
 	if not result[1] then mf:postResult( result ) return end
 	cleu:setMissThread( miss_h )
-
 
 	while signal ~= SIG_TERMINATE do
 		thread:yield()
