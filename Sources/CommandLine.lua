@@ -6,7 +6,7 @@ local _, DPS_Tracker = ...
 DPS_Tracker.CommandLine = {}
 cl = DPS_Tracker.CommandLine
 
-local libName ="WoWThreads"
+local libName ="WoWThreads-1.0"
 local thread = LibStub:GetLibrary( libName )
 if not thread then 
     return 

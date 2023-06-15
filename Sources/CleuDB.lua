@@ -7,7 +7,7 @@ local _, DPS_Tracker = ...
 DPS_Tracker.CleuDB = {}
 cleu = DPS_Tracker.CleuDB 
 
-local libName ="WoWThreads"
+local libName ="WoWThreads-1.0"
 local thread = LibStub:GetLibrary( libName )
 if not thread then 
     return 

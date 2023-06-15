@@ -11,7 +11,7 @@ local E = errors
 
 local sprintf = _G.string.format
 
-local ICON_DPS_TRACKER = 136813	-- this is the icon's texture
+local ICON_DPS_TRACKER = 237569	-- this is the icon's texture
 
 -- register the addon with ACE
 local addon = LibStub("AceAddon-3.0"):NewAddon(base.ADDON_NAME, "AceConsole-3.0")

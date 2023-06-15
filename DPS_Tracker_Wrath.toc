@@ -1,42 +1,39 @@
 ## Interface: 30401
+## ------------------------------------------------------------------
 ## Title: DPS_Tracker
-## Version:1.0.0
+## Version: 1.0.0
 ## Notes:
-## Author: Michael Peterson
+## IconTexture: 237569
 ## SavedVariablesPerCharacter: DPS_TrackerDB, DPS_TRACKER_HEALTHBAR_VARS, DPS_TRACKER_CHECKBOX_VARS
 ## 17 September, 2020
+## Dependencies: WoWThreads
 ## OptionalDeps: LibSharedMedia-3.0, LibDBIcon-1.0, LibDataBroker-1.1
+## X-github: https://github.com/mtp1032/DPS_Tracker
+## X-Expansions: WotLK, Retail
 
 #@no-lib-strip@
-LibACE\LibStub\LibStub.lua
-LibACE\CallbackHandler-1.0\CallbackHandler-1.0.xml
-LibACE\libdatabroker-1-1\LibDataBroker-1.1.lua
-LibACE\LibDataBroker-1.1\LibDataBroker-1.1.lua
-LibACE\LibDBIcon-1.0\LibDBIcon-1.0.lua
-LibACE\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
-LibACE\AceAddon-3.0\AceAddon-3.0.xml
-LibACE\AceConsole-3.0\AceConsole-3.0.xml
-LibACE\AceDB-3.0\AceDB-3.0.xml
+Libs\ACE\LibStub\LibStub.lua
+Libs\ACE\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\ACE\libdatabroker-1-1\LibDataBroker-1.1.lua
+Libs\ACE\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\ACE\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Libs\ACE\LibSharedMedia-3.0\LibSharedMedia-3.0.lua
+Libs\ACE\AceAddon-3.0\AceAddon-3.0.xml
+Libs\ACE\AceConsole-3.0\AceConsole-3.0.xml
+Libs\ACE\AceDB-3.0\AceDB-3.0.xml
 #@end-no-lib-strip@
 
 ##---------------------------------------------
-## Required / prerequisite files
+## Addon Files
 ##---------------------------------------------
 Sources\Base.lua
 Locales\EnUS_DPS_Tracker.lua
 ##
-LibUtils\ErrorHandling.lua
-LibUtils\Utils.lua
-LibUtils\Frames.lua
-LibUtils\MsgFrame.lua
-LibUtils\ScrollText.lua
-##
-LibThreads\Core.lua
-LibThreads\Dispatcher.lua
-LibThreads\WowThreads.lua
-LibThreads\Manager.lua
-##LibThreads\ThreadOptions.lua
-##LibThreads\ThreadsIcon.lua
+Utilities\ErrorHandling.lua
+Utilities\Utils.lua
+Utilities\Frames.lua
+Utilities\MsgFrame.lua
+Utilities\ScrollText.lua
 ##
 Sources\CleuDB.lua
 Sources\Main.lua
