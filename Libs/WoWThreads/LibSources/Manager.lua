@@ -12,9 +12,9 @@ mgr = WoWThreads.Manager
 local L = WoWThreads.L
 
 local sprintf = _G.string.format
-local EMPTY_STR = core.EMPTY_STR
-local SUCCESS   = core.SUCCESS
-local FAILURE   = core.FAILURE
+local EMPTY_STR = libcore.EMPTY_STR
+local SUCCESS   = libcore.SUCCESS
+local FAILURE   = libcore.FAILURE
 
 local SIG_ALERT             = dispatch.SIG_ALERT          -- You've returned prematurely from a yield. Do what's appropriate.
 local SIG_JOIN_DATA_READY   = dispatch.SIG_JOIN_DATA_READY
@@ -33,11 +33,11 @@ function mgr:getCongestionEntry( H )
     local count = 0
     local entry = nil
     if H == nil then
-        result = core:setResult(L["THREAD_HANDLE_NIL"], debugstack(2) )
+        result = libcore:setResult(L["THREAD_HANDLE_NIL"], debugstack(2) )
         return nil, count, result
     end  
-    if not core:dataCollectionIsEnabled() then
-        result = core:setResult( L["DATA_COLLECTION_NOT_ENABLED"], debugstack(1) )
+    if not libcore:dataCollectionIsEnabled() then
+        result = libcore:setResult( L["DATA_COLLECTION_NOT_ENABLED"], debugstack(1) )
         return nil, count, result
     end
     result = dispatch:checkIfHandleValid( H )
@@ -62,13 +62,12 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 local function OnEvent( self, event, ... )
     local addonName = ...
 
-    if event == "ADDON_LOADED" and addonName == core.ADDON_NAME then
+    if event == "ADDON_LOADED" and addonName == libcore.ADDON_NAME then
         
 		mgr:WoWThreadLibInit()
 
         DEFAULT_CHAT_FRAME:AddMessage( L["ADDON_LOADED_MESSAGE"], 0.0, 1.0, 1.0 )
         DEFAULT_CHAT_FRAME:AddMessage( L["MS_PER_TICK"], 0.0, 1.0, 1.0 )
-
         eventFrame:UnregisterEvent("ADDON_LOADED")  
     end
     return
@@ -76,6 +75,6 @@ end
 eventFrame:SetScript( "OnEvent", OnEvent )
 
 local fileName = "Manager.lua"
-if core:debuggingIsEnabled() then
+if libcore:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded", fileName), 1.0, 1.0, 0.0 )
 end

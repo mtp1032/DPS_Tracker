@@ -1,41 +1,39 @@
 --------------------------------------------------------------------------------------
--- FILE NAME:       LibThreads-1.0.lua 
+-- FILE NAME:       WoWThreads.lua 
 -- AUTHOR:          Michael Peterson
 -- ORIGINAL DATE:   25 May, 2023
 
 --------------------------------------------------------------------------------------
 --      This is the public interface to WoWThreads.                                 --
 --------------------------------------------------------------------------------------
-
 local _, WoWThreads = ...
 
--- Establish LibThreads
-local Major, Minor = "LibThreads-1.0", 1
-local lib = LibStub:NewLibrary( Major, Minor)
-if not lib then return end
-lib.Table = lib.Table or {}
+-- Initialize the library
+local libName, version = "WoWThreads", 1
+local thread = LibStub:NewLibrary( libName, version)
+if not thread then return end
 
 local L = WoWThreads.L
 local sprintf = _G.string.format 
 
-lib.SIG_ALERT            = dispatch.SIG_ALERT
-lib.SIG_JOIN_DATA_READY  = dispatch.SIG_JOIN_DATA_READY
-lib.SIG_TERMINATE        = dispatch.SIG_TERMINATE
-lib.SIG_METRICS          = dispatch.SIG_METRICS
-lib.SIG_NONE_PENDING     = dispatch.SIG_NONE_PENDING
+thread.SIG_ALERT            = dispatch.SIG_ALERT
+thread.SIG_JOIN_DATA_READY  = dispatch.SIG_JOIN_DATA_READY
+thread.SIG_TERMINATE        = dispatch.SIG_TERMINATE
+thread.SIG_METRICS          = dispatch.SIG_METRICS
+thread.SIG_NONE_PENDING     = dispatch.SIG_NONE_PENDING
 
-lib.SUCCESS     = core.SUCCESS
-lib.EMPTY_STR   = core.EMPTY_STR
+thread.SUCCESS     = libcore.SUCCESS
+thread.EMPTY_STR   = libcore.EMPTY_STR
 
-local SUCCESS   = lib.SUCCESS
-local EMPTY_STR = lib.EMPTY_STR
+local SUCCESS   = thread.SUCCESS
+local EMPTY_STR = thread.EMPTY_STR
 
 local function validateThreadHandle( thread_h )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     if thread_h == nil then
         local errMsg = sprintf("Input thread handle nil - %s\n", L["THREAD_HANDLE_NIL"])
-        result = core:setResult(L["THREAD_HANDLE_NIL"], debugstack(1) )
+        result = libcore:setResult(L["THREAD_HANDLE_NIL"], debugstack(1) )
         return result
     end  
     -- validate the thread handle's elements
@@ -51,32 +49,38 @@ local function validateThreadCreateParms( ticks, func )
 
     if ticks == nil then
         local errMsg = sprintf("%s - ticks not specified.\n", L["INPUT_PARM_NIL"])
-        result = core:setResult( errMsg, debugstack(1))
+        result = libcore:setResult( errMsg, debugstack(1))
     end
     if type( ticks ) ~= "number" then
         local errMsg = sprintf("%s - ticks not a number.\n", L["INVALID_TYPE"])
-        result = core:setResult( errMsg, debugstack(1))
+        result = libcore:setResult( errMsg, debugstack(1))
     end
     if func == nil then
         local errMsg = sprintf("%s - Thread function not specified.\n", L["INPUT_PARM_NIL"])
-        result = core:setResult( errMsg, debugstack(1))
+        result = libcore:setResult( errMsg, debugstack(1))
     end
     if type(func) ~= "function" then
         local errMsg = sprintf("%s - Parameter 2 not a function.\n", L["INVALID_TYPE"])
-        result = core:setResult( errMsg, debugstack(1))
+        result = libcore:setResult( errMsg, debugstack(1))
     end    
     return result
 end
 -- DESCRIPTION: Create a new thread.
 -- RETURNS: (handle) thread_h, result
-function lib:create( ticks, func, ... )
+function thread:create( ticks, func, ... )
     local result = { SUCCESS, EMPTY_STR, EMPTY_STR } 
     result = validateThreadCreateParms( ticks, func )
-    if not result[1] then return nil, result end
+    if not result[1] then 
+        libcore:dbgPrint()
+        return nil, result 
+    end
 
     -- Create a handle with a suspended coroutine
     local H, result = dispatch:createHandle( ticks, func )
-    if not result[1] then return nil, result end
+    if not result[1] then 
+        libcore:dbgPrint()
+        return nil, result 
+    end
 
     local co = dispatch:getCoroutine( H )
     dispatch:insertHandleIntoTCB(H)
@@ -85,7 +89,8 @@ function lib:create( ticks, func, ... )
         local threadId = dispatch:getThreadId( H )
         local threadState = coroutine.status( co )
         local msg = sprintf("Thread[%d] %s: %s,\n%s\n", threadId, threadState, L["THREAD_RESUME_FAILED"], val)
-        result = core:setResult( msg, debugstack(2) )
+        result = libcore:setResult( msg, debugstack(2) )
+        libcore:dbgPrint( result[2])
         return nil, result
     end
     assert( H ~= nil, "ASSERT FAILED")
@@ -94,8 +99,8 @@ function lib:create( ticks, func, ... )
 end 
 -- DESCRIPTION: Delays the calling thread for specified number of ticks
 -- RETURNS: void
-function lib:delay( ticks )
-    assert( ticks ~= nil, "ticks: " ..L["INPUT_PARM_NIL"] .. "in lib:delay()." )
+function thread:delay( ticks )
+    assert( ticks ~= nil, "ticks: " ..L["INPUT_PARM_NIL"] .. "in thread:delay()." )
     assert( type(ticks) == "number", L["INVALID_TYPE"])
 
     -- Get the handle of the calling thread
@@ -106,13 +111,13 @@ function lib:delay( ticks )
 end
 -- DESCRIPTION: yields execution of the number of ticks specified in thread:create()
 -- RETURNS; void
-function lib:yield()
+function thread:yield()
     local self_h = dispatch:getRunningHandle()
     dispatch:yield(self_h)
 end
 -- DESCRIPTION: returns the thread numerical Id
 -- RETURNS: (number) threadId, result
-function lib:getId( thread_h )
+function thread:getId( thread_h )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
     local threadId = nil
 
@@ -130,13 +135,13 @@ function lib:getId( thread_h )
 end
 -- DESCRIPTION: Returns the handle of the calling thread.
 -- RETURNS: (handle) thread_h, (number) threadId
-function lib:self()
+function thread:self()
     local self_h, selfId = dispatch:getRunningHandle()
     return self_h, selfId
 end
 -- DESCRIPTION: determines whether two threads are the same
 -- RETURNS: (boolean) true if equal, result
-function lib:areEqual( th1, th2 )
+function thread:areEqual( th1, th2 )
     local areEqual = false
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
@@ -156,7 +161,7 @@ function lib:areEqual( th1, th2 )
 end
 -- DESCRIPTION: gets the specified thread's parent
 -- RETURNS: (handle) parent_h, result
-function lib:getParent( thread_h )
+function thread:getParent( thread_h )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     -- if thread_h is nil then this is equivalent to "getMyParent"
@@ -166,7 +171,7 @@ function lib:getParent( thread_h )
         result = dispatch:checkIfHandleValid( thread_h ) 
     end
     if not result[1] then 
-        core:dbgPrint()
+        libcore:dbgPrint()
         return nil, result 
     end
 
@@ -175,7 +180,7 @@ function lib:getParent( thread_h )
 end
 -- DESCRIPTION: gets a table of the specified thread's children.
 -- RETURNS: (table) childThreads, result
-function lib:getChildThreads( thread_h )
+function thread:getChildThreads( thread_h )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     -- if thread_h is nil then this is equivalent to "getMyParent"
@@ -196,11 +201,11 @@ function lib:getChildThreads( thread_h )
 end    
 -- DESCRIPTION: gets the specified thread's execution state
 -- RETURNS: (string) state ( = "completed", "suspended", "queued", ), result.
-function lib:getState( thread_h )
+function thread:getState( thread_h )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     if thread_h == nil then
-        result = core:setResult( L["THREAD_HANDLE_NIL"], debugstack(1))
+        result = libcore:setResult( L["THREAD_HANDLE_NIL"], debugstack(1))
         return nil, result
     end
     result = validateThreadHandle( thread_h )
@@ -214,7 +219,7 @@ end
 -----------------------------------------------------------
 -- DESCRIPTION: gets the string name of the specified signal
 -- RETURNS: (string) signalName. result
-function lib:getSignalName( signal )
+function thread:getSignalName( signal )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     result = dispatch:validateSignal( signal )
@@ -225,11 +230,11 @@ function lib:getSignalName( signal )
 end
 -- DESCRIPTION: sends a signal to the specified thread. 
 -- RETURNS: result. 
-function lib:sendSignal( thread_h, signal )
+function thread:sendSignal( thread_h, signal )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
     if thread_h == nil then
-        result = core:setResult( L["THREAD_HANDLE_NIL"], debugstack(2) )
+        result = libcore:setResult( L["THREAD_HANDLE_NIL"], debugstack(2) )
         return result
     end
     result = validateThreadHandle( thread_h )
@@ -240,7 +245,7 @@ function lib:sendSignal( thread_h, signal )
 
     local state = dispatch:getThreadState( thread_h )
     if state == "completed" then
-        core:setResult(L["THREAD_ILLEGAL_OPERATION"], debugstack(1) )
+        libcore:setResult(L["THREAD_ILLEGAL_OPERATION"], debugstack(1) )
         return result
     end
     
@@ -253,17 +258,84 @@ end
 -- will be "" (EMPTY_STR) if sent from Blizzard code.
 --
 -- EXAMPLE: More than one signal in the thread's queue.
--- signal, sender_h = lib:getSignal()
+-- signal, sender_h = thread:getSignal()
 -- while signal ~= SIG_NONE_PENDING do
 --     <process signal>
---     signal, sender_h = lib:getSignal()
+--     signal, sender_h = thread:getSignal()
 -- end
-function lib:getSignal()
+function thread:getSignal()
     signal, sender_h = dispatch:getSignal()
-    local thread_h, threadId = dispatch:getRunningHandle()
+    local thread_h, threadId = dispatch:getRunningHandle() 
     return signal, sender_h
 end
-local fileName = "LibThreads-1.0.lua"
-if core:debuggingIsEnabled() then
+-------------------------------------------------------------------
+--                  UTILITIES
+-------------------------------------------------------------------
+function thread:prefix( stackTrace )
+	if stackTrace == nil then stackTrace = debugstack(2) end
+	
+	local pieces = {strsplit( ":", stackTrace, 5 )}
+	local segments = {strsplit( "\\", pieces[1], 5 )}
+
+	local fileName = segments[#segments]
+	
+	local strLen = string.len( fileName )
+	local fileName = string.sub( fileName, 1, strLen - 2 )
+	local names = strsplittable( "\/", fileName )
+	local lineNumber = tonumber(pieces[2])
+	local location = sprintf("[%s:%d] ", names[#names], lineNumber)
+	return location
+end
+function thread:print( msg )
+	local fileAndLine = thread:prefix( debugstack(2) )
+	local str = msg
+	if str then
+		str = sprintf("%s %s", fileAndLine, str )
+	else
+		str = fileAndLine
+	end
+	DEFAULT_CHAT_FRAME:AddMessage( str, 0.0, 1.0, 1.0 )
+end	
+function thread:printx( ... )
+	local prefix = thread:prefix( debugstack(2) )
+	DEFAULT_CHAT_FRAME:AddMessage( prefix, ... , 0.0, 1.0, 1.0 )
+
+	local str = msg
+	if str then
+		str = sprintf("%s %s", fileAndLine, str )
+	else
+		str = fileAndLine
+	end
+	DEFAULT_CHAT_FRAME:AddMessage( str, 0.0, 1.0, 1.0 )
+end	
+function thread:setResult( errMsg, stackTrace )
+	local result = { FAILURE, EMPTY_STR, EMPTY_STR }
+
+	local msg = sprintf("%s %s:\n", thread:prefix( stackTrace ), errMsg )
+	result[2] = msg
+
+	if stackTrace ~= nil then
+		result[3] = stackTrace
+	end
+	return result
+end
+function thread:postResult( result )
+	if errorMsgFrame == nil then
+		errorMsgFrame = threadframes:createErrorMsgFrame("Error Message")
+	end
+
+	if result[1] ~= FAILURE then 
+		return
+	end
+
+	local resultMsg = sprintf("%s:\n%s\n", result[2], result[3])
+	errorMsgFrame.Text:Insert( resultMsg )
+	errorMsgFrame:Show()
+end
+
+
+
+local fileName = "WoWThreads.lua"
+if libcore:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded", fileName), 1.0, 1.0, 0.0 )
 end

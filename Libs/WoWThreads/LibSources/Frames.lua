@@ -5,9 +5,10 @@
 --------------------------------------------------------------------------------------
 local _, WoWThreads = ...
 WoWThreads.Frames = {}
-frames = WoWThreads.Frames
+threadframes = WoWThreads.Frames
+
 local sprintf = _G.string.format
--- local L = WoWThreads.L
+local L = WoWThreads.L
 
 -- https://us.forums.blizzard.com/en/wow/t/addons-now-usable-in-shadowlands-beta/586355/16
 -- https://wow.gamepedia.com/API_Frame_SetBackdrop
@@ -139,7 +140,7 @@ end
 --------------------------------------------------------------------------
 --  Create the frame where the events are logged
 --  Create the frame where error messages are posted
-function frames:createErrorMsgFrame(title)
+function threadframes:createErrorMsgFrame(title)
     local f = createTopFrame( "ErrorMsgFrame",600, 200, 0, 0 )
     f:SetPoint("CENTER", 0, 200)
     f:SetFrameStrata("BACKGROUND")

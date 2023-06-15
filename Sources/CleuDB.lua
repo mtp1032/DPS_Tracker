@@ -7,11 +7,12 @@ local _, DPS_Tracker = ...
 DPS_Tracker.CleuDB = {}
 cleu = DPS_Tracker.CleuDB 
 
-local Major ="LibThreads-1.0"
-local thread = LibStub:GetLibrary( Major )
+local libName ="WoWThreads"
+local thread = LibStub:GetLibrary( libName )
 if not thread then 
     return 
 end
+
 
 local SIG_ALERT             = thread.SIG_ALERT
 local SIG_JOIN_DATA_READY   = thread.SIG_JOIN_DATA_READY
@@ -341,6 +342,7 @@ local function signalDamageThread( stats ) -- sends thread:sentSignal( damage_h,
 
 	table.insert( damageStringsDB, entry )
 	result = thread:sendSignal( damage_h, SIG_ALERT )
+	thread:print("Signal sent to damage_h")
 	return result
 end
 local function signalHealThread( stats ) -- sends thread:sentSignal( heal_h, SIG_ALERT)

@@ -8,8 +8,8 @@ dispatch = WoWThreads.Dispatcher
 
 local L = WoWThreads.L
 local sprintf = _G.string.format
-local EMPTY_STR = core.EMPTY_STR
-local SUCCESS   = core.SUCCESS
+local EMPTY_STR = libcore.EMPTY_STR
+local SUCCESS   = libcore.SUCCESS
 
 ----------------------- THREAD HANDLE -------------------------------
 
@@ -79,17 +79,15 @@ local signalNameTable       = { "SIG_ALERT", "SIG_JOIN_DATA_READY", "SIG_TERMINA
 -- ***********************************************************************
 -- *                               LOCAL FUNCTIONS                       *
 -- ***********************************************************************
-local function insertIntoTCB( H )
-    if H == nil then
-        H = getRunningHandle()
+local function removeFromTCB( thread_h )
+    local threadId = thread_h[TH_SEQUENCE_ID]
+    for i, H in ipairs( threadControlBlock ) do 
+        if H[TH_SEQUENCE_ID] == threadId then 
+            assert( H[TH_EXECUTION_STATE] == "completed", "ASSERT FAILED: Thread (%d) has not completed.", H[TH_SEQUENCE_ID])
+            return (table.remove( threadControlBlock, i ))
+        end
     end
-    table.insert( threadControlBlock, H )
-end
-local function removeFromTCB( number )
-    if number == nil then number = 1 end
-
-    local H = table.remove( threadControlBlock, number )
-    return H
+    return nil
 end
     -- RETURNS: Handle metrics entry = { threadId, ticksPerYield, yieldCount, timeSuspended, lifetime }
 local function convertHandleToEntry( H )
@@ -116,9 +114,9 @@ local function scheduleThreads()
         if H[TH_EXECUTION_STATE] == "completed" then
                     -- It's dead, Jim
             -- table.remove( threadControlBlock, i )
-            removeFromTCB( i )
+            removeFromTCB( H )
             table.insert( graveyard, H )
-            if core:dataCollectionIsEnabled() then
+            if libcore:dataCollectionIsEnabled() then
                 local lifetime = debugprofilestop() - H[TH_LIFETIME]
                 H[TH_LIFETIME] = lifetime
             end
@@ -147,7 +145,7 @@ local function scheduleThreads()
                             if H[TH_SEQUENCE_ID] == h[TH_SEQUENCE_ID] then
                                 table.remove( threadControlBlock, i )
                                 table.insert( graveyard, H )
-                                if core:dataCollectionIsEnabled() then
+                                if libcore:dataCollectionIsEnabled() then
                                     local lifetime = debugprofilestop() - H[TH_LIFETIME]
                                     H[TH_LIFETIME] = lifetime
                                 end
@@ -158,17 +156,6 @@ local function scheduleThreads()
             end 
         end
     end
-end
--- RETURNS: The first 14 chars of thestring representation of specified coroutine
-local function getCoroutineAddressId( co )
-    return string.sub( tostring( H[TH_EXECUTABLE_IMAGE] ), 14 )
-end
--- RETURNS: Addon Name. NOTE: this doesn't work when WoWThreads is separate from the AddOn.
-local function getAddonName()
-    local stackTrace = debugstack(1)
-    local strTable = strsplittable("\\", stackTrace )
-    local addonName = strupper( strTable[3])
-    return strTable[3]
 end
 -- ***********************************************************************
 -- *                               PUBLIC FUNCTIONS                      *
@@ -202,7 +189,6 @@ function dispatch:getThreadMetrics( H )
     end
     return entry, numInGrave, result
 end
-
 -- RETURNS: the parent thread of H. if H is a top level thread, then nil is returned
 function dispatch:getThreadParent( H )
     local parent_h = nil
@@ -252,13 +238,13 @@ function dispatch:yield()
 
     local H, threadId = dispatch:getRunningHandle()
     local startTime = 0
-    if core:dataCollectionIsEnabled() then
+    if libcore:dataCollectionIsEnabled() then
         startTime = debugprofilestop()
     end
 
     coroutine.yield()
         
-    if core:dataCollectionIsEnabled() then
+    if libcore:dataCollectionIsEnabled() then
         local elapsedTime = debugprofilestop() - startTime
         H[TH_ACCUM_YIELD_TIME] = H[TH_ACCUM_YIELD_TIME] + elapsedTime
         H[TH_YIELD_COUNT] = H[TH_YIELD_COUNT] + 1
@@ -318,7 +304,7 @@ function dispatch:insertHandleIntoTCB( H )
 end 
 -- RETURNS: Handle's coroutine 
 function dispatch:getCoroutine( H )
-    if core:debuggingIsEnabled() then
+    if libcore:debuggingIsEnabled() then
         assert( H ~= nil, sprintf("ASSERT FAILED: %s\n", L["THREAD_HANDLE_NIL"]), debugstack(1))
         assert( H[TH_EXECUTABLE_IMAGE] ~= nil, L["HANDLE_COROUTINE_NIL"], debugstack(1) )
         assert( type(H[TH_EXECUTABLE_IMAGE]) == "thread", L["INVALID_COROUTINE_TYPE"], debugstack(1))
@@ -329,9 +315,9 @@ end
 function dispatch:validateSignal( signal )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
-    if core:debuggingIsEnabled() then
+    if libcore:debuggingIsEnabled() then
         if signal == nil then
-            result = core:setResult(L["INPUT_PARM_NIL"],debugstack(1))
+            result = libcore:setResult(L["INPUT_PARM_NIL"],debugstack(1))
             return result    
         end
         assert( signal ~= nil, sprintf("%s\n    %s\n", L["INPUT_PARM_NIL"], debugstack(1) ))
@@ -343,17 +329,17 @@ function dispatch:validateSignal( signal )
 
     -- validate the signal
     if signal == nil then
-        result = core:setResult(L["INPUT_PARM_NIL"],debugstack(1))
+        result = libcore:setResult(L["INPUT_PARM_NIL"],debugstack(1))
         return result
     end
     if type( signal ) ~= "number" then
-        result = core:setResult(L["INVALID_TYPE"], debugstack(1) )
+        result = libcore:setResult(L["INVALID_TYPE"], debugstack(1) )
         return result
     end
 
     -- return signal <= SIG_ALERT  and signal >= SIG_NONE_PENDING
     if signal < SIG_ALERT and signal > SIG_NONE_PENDING then 
-        result = core:setResult( L["SIGNAL_OUT_OF_RANGE"] )
+        result = libcore:setResult( L["SIGNAL_OUT_OF_RANGE"] )
         return isValid, result
     end
     return result
@@ -362,7 +348,7 @@ end
 function dispatch:checkIfHandleValid( H )
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
-    -- if core:debuggingIsEnabled() then
+    -- if libcore:debuggingIsEnabled() then
         assert(#H == TH_NUM_ELEMENTS, L["HANDLE_INVALID_TABLE_SIZE"])
         assert( type(H) == "table", L["HANDLE_NOT_TABLE"])
         assert( H[TH_EXECUTABLE_IMAGE] ~= nil, L["HANDLE_COROUTINE_NIL"] )
@@ -371,21 +357,21 @@ function dispatch:checkIfHandleValid( H )
     -- end
 
     if type(H[TH_EXECUTABLE_IMAGE]) ~= "thread" then
-        result = core:setResult(L["INVALID_TYPE"] .. " Expected type == 'thread'", debugstack(1))
+        result = libcore:setResult(L["INVALID_TYPE"] .. " Expected type == 'thread'", debugstack(1))
         return result
     end
     if type(H) ~= "table" then
-        result = core:setResult(L["HANDLE_NOT_TABLE"], debugstack(1) )
+        result = libcore:setResult(L["HANDLE_NOT_TABLE"], debugstack(1) )
         return result
     end        
     if #H ~= TH_NUM_ELEMENTS then
-        result = core:setResult(L["HANDLE_INVALID_TABLE_SIZE"], debugstack(1) )
+        result = libcore:setResult(L["HANDLE_INVALID_TABLE_SIZE"], debugstack(1) )
         return result
     end
     for i = 1, TH_NUM_ELEMENTS do
         if H[i] == nil then
             local s = sprintf("H[%d] is nil.", i)
-            result = core:setResult( s, debugstack(1) )
+            result = libcore:setResult( s, debugstack(1) )
             return result
         end
     end
@@ -448,7 +434,7 @@ function dispatch:signalJoiners()
 
     for _, joiner_h in ipairs( self_h[TH_JOIN_QUEUE] ) do
         local wasSent = dispatch:deliverSignal( joiner_h, SIG_JOIN_DATA_READY )
-        if core:debuggingIsEnabled() then
+        if libcore:debuggingIsEnabled() then
             if not wasSent then
                 local threadId = joiner_h[TH_SEQUENCE_ID]
             end
@@ -458,6 +444,6 @@ function dispatch:signalJoiners()
 end
 
 local fileName = "Dispatcher.lua"
-if core:debuggingIsEnabled() then
+if libcore:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded", fileName), 1.0, 1.0, 0.0 )
 end

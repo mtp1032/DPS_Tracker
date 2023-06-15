@@ -4,60 +4,60 @@
 -- ORIGINAL DATE:   25 May, 2023
 local _, WoWThreads = ...
 WoWThreads.Core = {} 
-core = WoWThreads.Core
+libcore = WoWThreads.Core
+
 local L = WoWThreads.L
 local sprintf = _G.string.format 
 
-core.EMPTY_STR 		= ""
-core.SUCCESS 		= true
-core.FAILURE 		= false
-local C				= core
-core.DEBUGGING_ENABLED           = true
-core.DATA_COLLECTION_ENABLED     = false
+libcore.EMPTY_STR 		= ""
+libcore.SUCCESS 		= true
+libcore.FAILURE 		= false
+libcore.DEBUGGING_ENABLED           = true
+libcore.DATA_COLLECTION_ENABLED     = false
 
-local DEBUGGING_ENABLED           = core.DEBUGGING_ENABLED
-local DATA_COLLECTION_ENABLED     = core.DATA_COLLECTION_ENABLED
+local DEBUGGING_ENABLED           = libcore.DEBUGGING_ENABLED
+local DATA_COLLECTION_ENABLED     = libcore.DATA_COLLECTION_ENABLED
 
-local EMPTY_STR = core.EMPTY_STR
-local SUCCESS	= core.SUCCESS
-local FAILURE	= core.FAILURE
+local EMPTY_STR = libcore.EMPTY_STR
+local SUCCESS	= libcore.SUCCESS
+local FAILURE	= libcore.FAILURE
 
 -- Globals preserved across reloads
-core.EXPANSION_NAME 	= nil
-core.EXPANSION_LEVEL	= nil
+libcore.EXPANSION_NAME 	= nil
+libcore.EXPANSION_LEVEL	= nil
 
 local function setExpansionName()
-	core.EXPANSION_LEVEL = GetServerExpansionLevel()
+	libcore.EXPANSION_LEVEL = GetServerExpansionLevel()
 
-	if core.EXPANSION_LEVEL == LE_EXPANSION_CLASSIC then
-		core.EXPANSION_NAME = "Classic (Vanilla)"
+	if libcore.EXPANSION_LEVEL == LE_EXPANSION_CLASSIC then
+		libcore.EXPANSION_NAME = "Classic (Vanilla)"
 	end
-	if core.EXPANSION_LEVEL == LE_EXPANSION_WRATH_OF_THE_LICH_KING then
-		core.EXPANSION_NAME = "Classic (WotLK)"
+	if libcore.EXPANSION_LEVEL == LE_EXPANSION_WRATH_OF_THE_LICH_KING then
+		libcore.EXPANSION_NAME = "Classic (WotLK)"
 	end
-	if core.EXPANSION_LEVEL == LE_EXPANSION_DRAGONFLIGHT then
-		core.EXPANSION_NAME = "Dragon Flight"
+	if libcore.EXPANSION_LEVEL == LE_EXPANSION_DRAGONFLIGHT then
+		libcore.EXPANSION_NAME = "Dragon Flight"
 	end
 
 	if isValid == false then
-		local errMsg = sprintf("Invalid Expansion Code, %d", core.EXPANSION )
+		local errMsg = sprintf("Invalid Expansion Code, %d", libcore.EXPANSION )
 		DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s", errMsg), 1.0, 1.0, 0.0 )
 	end
-	return core.EXPANSION_LEVEL, core.EXPANSION_NAME
+	return libcore.EXPANSION_LEVEL, libcore.EXPANSION_NAME
 end
-core.EXPANSION_LEVEL, core.EXPANSION_NAME = setExpansionName()
+libcore.EXPANSION_LEVEL, libcore.EXPANSION_NAME = setExpansionName()
 
 local function getAddonName()
 	local stackTrace = debugstack(2)
 	local dirNames = nil
 	local addonName = nil
 
-	if 	core.EXPANSION_LEVEL == LE_EXPANSION_DRAGONFLIGHT then
+	if 	libcore.EXPANSION_LEVEL == LE_EXPANSION_DRAGONFLIGHT then
 		dirNames = {strsplittable( "\/", stackTrace, 5 )}	end
-	if core.EXPANSION_LEVEL == LE_EXPANSION_WRATH_OF_THE_LICH_KING then
+	if libcore.EXPANSION_LEVEL == LE_EXPANSION_WRATH_OF_THE_LICH_KING then
 		dirNames = {strsplittable( "\/", stackTrace, 5 )}
 	end
-	if core.EXPANSION_LEVEL == LE_EXPANSION_CLASSIC then
+	if libcore.EXPANSION_LEVEL == LE_EXPANSION_CLASSIC then
 		dirNames = {strsplittable( "\/", stackTrace, 5 )}
 	end
 
@@ -65,12 +65,12 @@ local function getAddonName()
 	return addonName
 end
 
-core.ADDON_NAME 	= getAddonName()
-core.ADDON_VERSION 	= GetAddOnMetadata( core.ADDON_NAME, "Version")
+libcore.ADDON_NAME 	= getAddonName()
+libcore.ADDON_VERSION 	= GetAddOnMetadata( libcore.ADDON_NAME, "Version")
 
 local errorMsgFrame = nil
 
-function core:prefix( stackTrace )
+function libcore:dbgPrefix( stackTrace )
 	if stackTrace == nil then stackTrace = debugstack(2) end
 	
 	local pieces = {strsplit( ":", stackTrace, 5 )}
@@ -85,8 +85,8 @@ function core:prefix( stackTrace )
 	local location = sprintf("[%s:%d] ", names[#names], lineNumber)
 	return location
 end
-function core:dbgPrint( msg )
-	local fileAndLine = core:prefix( debugstack(2) )
+function libcore:dbgPrint( msg )
+	local fileAndLine = libcore:dbgPrefix( debugstack(2) )
 	local str = msg
 	if str then
 		str = sprintf("%s %s", fileAndLine, str )
@@ -95,8 +95,8 @@ function core:dbgPrint( msg )
 	end
 	DEFAULT_CHAT_FRAME:AddMessage( str, 0.0, 1.0, 1.0 )
 end	
-function core:dbgPrintx( ... )
-	local prefix = core:prefix( debugstack(2) )
+function libcore:dbgPrintx( ... )
+	local prefix = libcore:dbgPrefix( debugstack(2) )
 	DEFAULT_CHAT_FRAME:AddMessage( prefix, ... , 0.0, 1.0, 1.0 )
 
 	local str = msg
@@ -107,10 +107,10 @@ function core:dbgPrintx( ... )
 	end
 	DEFAULT_CHAT_FRAME:AddMessage( str, 0.0, 1.0, 1.0 )
 end	
-function core:setResult( errMsg, stackTrace )
+function libcore:setResult( errMsg, stackTrace )
 	local result = { FAILURE, EMPTY_STR, EMPTY_STR }
 
-	local msg = sprintf("%s %s:\n", core:prefix( stackTrace ), errMsg )
+	local msg = sprintf("%s %s:\n", libcore:dbgPrefix( stackTrace ), errMsg )
 	result[2] = msg
 
 	if stackTrace ~= nil then
@@ -118,9 +118,9 @@ function core:setResult( errMsg, stackTrace )
 	end
 	return result
 end
-function core:postResult( result )
+function libcore:postResult( result )
 	if errorMsgFrame == nil then
-		errorMsgFrame = frames:createErrorMsgFrame("Error Message")
+		errorMsgFrame = threadframes:createErrorMsgFrame("Error Message")
 	end
 
 	if result[1] ~= FAILURE then 
@@ -131,56 +131,37 @@ function core:postResult( result )
 	errorMsgFrame.Text:Insert( resultMsg )
 	errorMsgFrame:Show()
 end
-function core:displayInfoMsg( msg )
+function libcore:displayInfoMsg( msg )
 	UIErrorsFrame:AddMessage( msg, 0.0, 1.0, 0.0, 20 ) 
 end
 -- RETURNS: boolean true if enabled, false otherwise
-function core:dataCollectionIsEnabled()
+function libcore:dataCollectionIsEnabled()
     return DATA_COLLECTION_ENABLED
 end
-function core:enableDataCollection()
+function libcore:enableDataCollection()
     DATA_COLLECTION_ENABLED = true
     DEFAULT_CHAT_FRAME:AddMessage( "Performance Data Collection is Now ENABLED", 0.0, 1.0, 1.0 )
 end
-function core:disableDataCollection()
+function libcore:disableDataCollection()
     DATA_COLLECTION_ENABLED = false  
     DEFAULT_CHAT_FRAME:AddMessage( "Performance Data Collection is Now DISABLED", 0.0, 1.0, 1.0 )
 end
-function core:enableDebugging()
+function libcore:enableDebugging()
 	DEBUGGING_ENABLED = true
 	DEFAULT_CHAT_FRAME:AddMessage( "Debugging is Now ENABLED", 0.0, 1.0, 1.0 )
 end
-function core:disableDebugging()
+function libcore:disableDebugging()
 	DEBUGGING_ENABLED = false
 	DEFAULT_CHAT_FRAME:AddMessage( "Debugging is Now DISABLED", 0.0, 1.0, 1.0 )
 end
-function core:debuggingIsEnabled()
+function libcore:debuggingIsEnabled()
 	return DEBUGGING_ENABLED
 end
 -- Rounds up to integer
-function core:roundUp( num)
+function libcore:roundUp( num)
     return math.ceil( num )
 end
 local fileName = "Core.lua"
-if core:debuggingIsEnabled() then
+if libcore:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded", fileName), 1.0, 1.0, 0.0 )
 end
---[[ 
-local function bottom()
-	local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
-	result = core:setResult( "Failed in some way", debugstack() )
-	return result
-end
-local function middle()
-	local result = bottom()
-	return result
-end
-local function top()
-	local result = middle()
-	return result
-end
-
-local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
-local result = top()
-if not result[1] then core:postResult( result ) end
- ]]

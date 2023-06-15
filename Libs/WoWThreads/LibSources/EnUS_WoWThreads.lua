@@ -1,10 +1,9 @@
 ----------------------------------------------------------------------------------------
--- FILE NAME:		EnUS-WoWThreads.lua
+-- FILE NAME:		EnUS_WoWThreads.lua
 -- AUTHOR:          Michael Peterson
 -- ORIGINAL DATE:   25 May, 2023
 ----------------------------------------------------------------------------------------
 local _, WoWThreads = ...
-WoWThreads.EnUS = {}
 
 local L = setmetatable({}, { __index = function(t, k) 
 	local v = tostring(k)
@@ -17,13 +16,13 @@ local sprintf = _G.string.format
 
 -- English translations
 
-local addonName 	= core.ADDON_NAME 
-local addonVersion 	= core.ADDON_VERSION
-local expansionName = core.EXPANSION_NAME
+local addonName 	= libcore.ADDON_NAME 
+local addonVersion 	= libcore.ADDON_VERSION
+local expansionName = libcore.EXPANSION_NAME
 local clockInterval	= 1/GetFramerate() * 1000
 local msPerTick 	= sprintf("Clock interval: %0.01f milliseconds per tick.\n", clockInterval )
 
-local LOCALE = GetLocale()      -- BLIZZ: this is case-sensitive and returns "enUS"
+local LOCALE = GetLocale()
 if LOCALE == "enUS" then
 
 	-- WoWThreads Localizations
@@ -40,20 +39,6 @@ if LOCALE == "enUS" then
 	L["SHIFT_LEFTCLICK_DISMISS_COMBATLOG"] = "Some other function."
 	L["SHIFT_RIGHTCLICK_ERASE_TEXT"]	= "Yet another function"
 
---[[ 	
-	local title = sprintf("%s",L["ADDON_NAME_AND_VERSION"] )
-	local s1 = sprintf("  %s enable developers to incorporate multithreaded, asynchronous,\n", L["ADDON_NAME"])
-	local s2 = sprintf("  and non-preemptive semantics into WoW addons. %s can\n", L["ADDON_NAME"])
-	local s3 = sprintf("  increase an addon’s concurrency and reduce coding complexity\n")
-	L["TITLE_WOWTHREADS"] = sprintf("              %s\n\n", title)
-	L["ABOUT_WOWTHREADS"] = sprintf("%s%s%s", s1, s2, s3 )
-	L["WOWTHREADS_TEST"] = sprintf("Tests: %s", L["ADDON_NAME"])
-	L["RUN_BASIC_TEST1"] = sprintf("Run basic tests in file BasicTest.lua")
-	
-	L["PERFORMANCE_DATA_COLLECTION"] 			= "Enable thread-specific performance data collection? "
-	L["TOOLTIP_PERFORMANCE_DATA_COLLECTION"] 	= "Off by default. "
- ]]	
- 
  	-- Generic Error MessageS
 	L["INPUT_PARM_NIL"]		= "[ERROR] Input parameter nil "
 	L["INVALID_TYPE"]		= "[ERROR] Input datatype invalid . "
@@ -82,7 +67,7 @@ if LOCALE == "enUS" then
 	L["ASSERT"]	= "ASSERT FAILED: "
 end
 
-local fileName = "EnUS-WoWThreads.lua"
-if core:debuggingIsEnabled() then
+local fileName = "EnUS_WoWThreads.lua"
+if libcore:debuggingIsEnabled() then
 	DEFAULT_CHAT_FRAME:AddMessage( sprintf("%s loaded", fileName), 1.0, 1.0, 0.0 )
 end

@@ -6,12 +6,11 @@ local _, DPS_Tracker = ...
 DPS_Tracker.CommandLine = {}
 cl = DPS_Tracker.CommandLine
 
-local Major ="LibThreads-1.0"
-local thread = LibStub:GetLibrary( Major )
+local libName ="WoWThreads"
+local thread = LibStub:GetLibrary( libName )
 if not thread then 
     return 
 end
-
 local SIG_ALERT             = thread.SIG_ALERT
 local SIG_JOIN_DATA_READY   = thread.SIG_JOIN_DATA_READY
 local SIG_TERMINATE         = thread.SIG_TERMINATE

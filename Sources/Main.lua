@@ -7,12 +7,11 @@ local _, DPS_Tracker = ...
 DPS_Tracker.Main = {}
 main = DPS_Tracker.Main
 
-local Major ="LibThreads-1.0"
-local thread = LibStub:GetLibrary( Major )
+local libName ="WoWThreads"
+local thread = LibStub:GetLibrary( libName )
 if not thread then 
     return 
 end
-
 local SIG_ALERT             = thread.SIG_ALERT
 local SIG_JOIN_DATA_READY   = thread.SIG_JOIN_DATA_READY
 local SIG_TERMINATE         = thread.SIG_TERMINATE
@@ -36,7 +35,7 @@ local main_h	= nil
 -- ********************************************************************************
 
 
-local function damageThreadFunc()   -- action routine for the damage_h thread
+local function damageThreadFunc()
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
     local DONE = false 
 
