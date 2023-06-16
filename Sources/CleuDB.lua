@@ -13,7 +13,6 @@ if not thread then
     return 
 end
 
-
 local SIG_ALERT             = thread.SIG_ALERT
 local SIG_JOIN_DATA_READY   = thread.SIG_JOIN_DATA_READY
 local SIG_TERMINATE         = thread.SIG_TERMINATE
