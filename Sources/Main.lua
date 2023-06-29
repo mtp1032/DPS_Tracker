@@ -16,6 +16,7 @@ local SIG_ALERT             = thread.SIG_ALERT
 local SIG_JOIN_DATA_READY   = thread.SIG_JOIN_DATA_READY
 local SIG_TERMINATE         = thread.SIG_TERMINATE
 local SIG_METRICS           = thread.SIG_METRICS
+local SIG_STOP              = thread.SIG_STOP
 local SIG_NONE_PENDING      = thread.SIG_NONE_PENDING
 
 local L = DPS_Tracker.L

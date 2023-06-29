@@ -9,6 +9,9 @@ mf = DPS_Tracker.MsgFrame
 local sprintf = _G.string.format
 local L = DPS_Tracker.L
 
+local SUCCESS	= base.SUCCESS
+local FAILURE	= base.FAILURE
+
 local frameTitle = L["USER_MSG_FRAME"]
 local msgFrame = frames:createMsgFrame( frameTitle)
 local frameTitle = sprintf("%s %s", L["ADDON_AND_VERSION"], L["ERROR_MSG_FRAME_TITLE"])
@@ -42,9 +45,10 @@ function mf:postMsg( msg )
 	frames:showFrame( msgFrame )
 	msgFrame.Text:Insert( msg )
 end
+
 function mf:postResult( result )
 	local status = nil
-	if result[1] ~= STATUS_C_FAILURE then 
+	if result[1] ~= FAILURE then 
 		return
 	end
 	local topLine = sprintf("[%s] %s: %s\n", "FAILURE", result[2], result[3])

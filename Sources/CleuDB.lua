@@ -17,9 +17,11 @@ local SIG_ALERT             = thread.SIG_ALERT
 local SIG_JOIN_DATA_READY   = thread.SIG_JOIN_DATA_READY
 local SIG_TERMINATE         = thread.SIG_TERMINATE
 local SIG_METRICS           = thread.SIG_METRICS
+local SIG_STOP              = thread.SIG_STOP
 local SIG_NONE_PENDING      = thread.SIG_NONE_PENDING
 
 local L = DPS_Tracker.L
+
 local sprintf = _G.string.format
 
 CLEU_STATS_SAVED_VARS = {}
@@ -130,6 +132,7 @@ local SIG_ALERT             = thread.SIG_ALERT
 local SIG_JOIN_DATA_READY   = thread.SIG_JOIN_DATA_READY
 local SIG_TERMINATE         = thread.SIG_TERMINATE
 local SIG_METRICS           = thread.SIG_METRICS
+local SIG_STOP              = thread.SIG_STOP
 local SIG_NONE_PENDING      = thread.SIG_NONE_PENDING
 
 ------ INDICES FOR THE CLEU SUBEVENT TABLE----
@@ -341,7 +344,6 @@ local function signalDamageThread( stats ) -- sends thread:sentSignal( damage_h,
 
 	table.insert( damageStringsDB, entry )
 	result = thread:sendSignal( damage_h, SIG_ALERT )
-	thread:print("Signal sent to damage_h")
 	return result
 end
 local function signalHealThread( stats ) -- sends thread:sentSignal( heal_h, SIG_ALERT)
@@ -733,17 +735,22 @@ local function insertCleuStats( stats ) -- signals damage, heal, aura, and miss 
 		insertDmgRecord( dmgRecord )
 
 		result = signalDamageThread( stats )
-		if not result[1] then return result end
+		return result
 	end
 
 	if isHealSubEvent( stats ) then
-	return signalHealThread( stats )
+		result = signalHealThread(stats)
+		return result
+	end
 
-	elseif isAuraSubEvent(stats) then
-		return signalAuraThread( stats )
+	if isAuraSubEvent(stats) then
+		result = signalAuraThread( stats )
+		return result
+	end
 
-	elseif isMissSubEvent( stats ) then
-		return signalMissThread( stats )
+	if isMissSubEvent( stats ) then
+		result = signalMissThread( stats )
+		return result
 	end
 
 	-- Only continue beyond this point if the target is
@@ -1119,7 +1126,7 @@ function( self, event, ... )
 			return
 		end
 		result = insertCleuStats( stats )
-		if not result[1] == SUCCESS then mf:postResult( result ) end
+		if not result[1] then mf:postResult( result ) end
 		return
 	end
 end)
