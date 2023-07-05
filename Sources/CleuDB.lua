@@ -890,11 +890,11 @@ end
 --------------- SCROLLING DAMAGE ---------------
 function cleu:enableScrollingDmg()
 	DISPLAY_DMG_ENABLED = true
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Damage Now ENABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Damage Now ENABLED.")
 end
 function cleu:disableScrollingDmg()
 	DISPLAY_DMG_ENABLED = false
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Damage now DISABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Damage now DISABLED.")
 end
 function cleu:isScrollingDmgEnabled()
 	return DISPLAY_DMG_ENABLED
@@ -902,11 +902,11 @@ end
 --------------- SCROLLING HEALS ---------------
 function cleu:enableScrollingHeals()
 	DISPLAY_HEALS_ENABLED = true
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Heals Events Now ENABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Heals Events Now ENABLED.")
 end
 function cleu:disableScrollingHeals()
 	DISPLAY_HEALS_ENABLED = false
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Heals now DISABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Heals now DISABLED.")
 end
 function cleu:isScrollingHealsEnabled()
 	return DISPLAY_HEALS_ENABLED
@@ -914,11 +914,11 @@ end
 --------------- SCROLLING AURAS ---------------
 function cleu:enableScrollingAuras()
 	DISPLAY_AURAS_ENABLED = true
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Auras Events Now ENABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Auras Events Now ENABLED.")
 end
 function cleu:disableScrollingAuras()
 	DISPLAY_AURAS_ENABLED = false
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Auras Now DISABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Auras Now DISABLED.")
 end
 function cleu:isScrollingAurasEnabled()
 	return DISPLAY_AURAS_ENABLED
@@ -926,11 +926,11 @@ end
 --------------- SCROLLING MISSES ---------------
 function cleu:enableScrollingMisses()
 	DISPLAY_MISSES_ENABLED = true
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Misses Events Now ENABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Misses Events Now ENABLED.")
 end
 function cleu:disableScrollingMisses()
 	DISPLAY_MISSES_ENABLED = false
-	DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Misses Now DISABLED.")
+	-- DEFAULT_CHAT_FRAME:AddMessage( "Scrolling Misses Now DISABLED.")
 end
 function cleu:isScrollingMissesEnabled()
 	return DISPLAY_MISSES_ENABLED

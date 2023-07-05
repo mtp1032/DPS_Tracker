@@ -25,10 +25,6 @@ end
 function dbg:debuggingIsEnabled()
 	return base:debuggingIsEnabled()
 end
-function dbg:assert( assertCondition, assertText )
-	if not base:debuggingIsEnabled() then return end
-	assert( assertCondition, assertText )
-end
 function dbg:prefix( stackTrace )
 	if stackTrace == nil then stackTrace = debugstack(2) end
 	

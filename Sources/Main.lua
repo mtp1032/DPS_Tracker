@@ -41,7 +41,7 @@ local function damageThreadFunc()
     local DONE = false 
 
     local _, selfId = thread:self()
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Damage thread[%d] (damage_h) running", selfId) ) 
+    -- DEFAULT_CHAT_FRAME:AddMessage( sprintf("Damage thread[%d] (damage_h) running", selfId) ) 
 
     while not DONE do
         thread:yield()
@@ -60,14 +60,13 @@ local function damageThreadFunc()
             DONE = true
         end  
     end
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Damage thread terminated." ))
 end
 local function healThreadFunc()     -- action routine for the heal_h thread
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
     local DONE = false 
 
     local _, selfId = thread:self()
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Heal thread[%d] (damage_h) running", selfId) ) 
+    -- DEFAULT_CHAT_FRAME:AddMessage( sprintf("Heal thread[%d] (heal_h) running", selfId) ) 
 
     while not DONE do
         thread:yield()
@@ -86,14 +85,13 @@ local function healThreadFunc()     -- action routine for the heal_h thread
             DONE = true
         end                
     end
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Heal thread[%d] (damage_h) terminated", selfId) ) 
 end
 local function auraThreadFunc()     -- action routine for the aura thread
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
     local DONE = false 
 
     local _, selfId = thread:self()
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Aura thread[%d] (damage_h) running", selfId) ) 
+    -- DEFAULT_CHAT_FRAME:AddMessage( sprintf("Aura thread[%d] (aura_h) running", selfId) ) 
 
     while not DONE do
         thread:yield()
@@ -112,14 +110,13 @@ local function auraThreadFunc()     -- action routine for the aura thread
             DONE = true
         end                
     end
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Aura thread terminated." ))
 end
 local function missThreadFunc()     -- action routine for the miss thread
     local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
     local DONE = false 
 
     local _, selfId = thread:self()
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Miss thread[%d] (damage_h) running", selfId) ) 
+    -- DEFAULT_CHAT_FRAME:AddMessage( sprintf("Miss thread[%d] (miss_h) running", selfId) ) 
 
     while not DONE do
         thread:yield()
@@ -138,7 +135,6 @@ local function missThreadFunc()     -- action routine for the miss thread
             DONE = true
         end                
     end
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Damage thread terminated." ))
 end
 local function exitDpsTracker()
 	local result = {SUCCESS, EMPTY_STR, EMPTY_STR }
@@ -148,9 +144,6 @@ local function exitDpsTracker()
 
 	result = thread:sentSignal( heal_h, SIG_TERMINATE)
 	if not result[1] then mf:postResult( result ) return end
-
-	-- result = thread:sentSignal( aura_h, SIG_TERMINATE)
-	-- if not result[1] then mf:postResult( result ) return end
 
 	result = thread:sentSignal( miss_h, SIG_TERMINATE)
 	if not result[1] then mf:postResult( result ) return end
@@ -164,7 +157,6 @@ local function main()
 	local yieldInterval = 30 -- ~ 5 seconds
 	local signal = SIG_NONE_PENDING
     local _, selfId = thread:self()
-    -- DEFAULT_CHAT_FRAME:AddMessage( sprintf("Main thread[%d] (main_h) running", selfId) )
 
 	damage_h, result = thread:create( yieldInterval, damageThreadFunc )
 	if not result[1] then mf:postResult( result )return end
@@ -186,7 +178,6 @@ local function main()
 		thread:yield()
 		signal, sender_h = thread:getSignal()
 	end
-    DEFAULT_CHAT_FRAME:AddMessage( sprintf("Main thread terminated." ))
 end
 
 local main_h = nil

@@ -358,8 +358,7 @@ function( self, event, ... )
 end)
 
 local fileName = "TrackerOptions.lua"
-if not base:debuggingIsEnabled() then
-	base:enableDebugging()
+if base:debuggingIsEnabled() then
+	DEFAULT_CHAT_FRAME:AddMessage( sprintf("[%s] %s loaded", base.ADDON_NAME, fileName), 1.0, 1.0, 0.0 )
 end
-DEFAULT_CHAT_FRAME:AddMessage( sprintf("[%s] %s loaded", base.ADDON_NAME, fileName), 1.0, 1.0, 0.0 )
 
