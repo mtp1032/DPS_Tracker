@@ -608,7 +608,7 @@ function cleu:resetTargetHealthBar()
 	f.TargetMaxHealth	= 0
 	f.TargetHealth		= UnitHealthMax( "Player ")
 	f.TargetName 		= nil
-	f.targetGUID		= nil
+f.TargetGUID		= nil
 
 	f.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 	f.bar:SetStatusBarColor( 0.0, 1.0, 0.0 )
@@ -672,9 +672,9 @@ local function initEncounterDB( elapsedTime ) -- converts dmgRecordTable to an e
 		totalEncounterDmg = totalEncounterDmg + totalSpellDmg
 		local s = nil
 		if totalCrit == 0 then
-			s = sprintf("[%s] Total damage: %d DPC: %0.2f (%d casts)\n", spellName, totalSpellDmg, DPC, totalCasts )
+			s = sprintf("[%s] Damage: %d DPC: %0.2f (%d casts)\n", spellName, totalSpellDmg, DPC, totalCasts )
 		else
-			s = sprintf("[%s] Total damage: %d, Crit %d (Percent Crit %0.2f%%), DPC %0.2f (%d casts)\n",
+			s = sprintf("[%s] Damage: %d, Crit %d (Percent Crit %0.2f%%), DPC %0.2f (%d casts)\n",
 			spellName, totalSpellDmg, spellCritDmg, percentCrit, DPC, totalCasts )
 		end
 
@@ -706,7 +706,7 @@ local function updateHealthBar( stats )
 	-- do not proceed if this damage is to a
 	-- target different than the player's, e.g.,
 	-- an AOE cast.
-	if f.targetGUID ~= stats[TARGETGUID] then 
+	if f.TargetGUID ~= stats[TARGETGUID] then 
 		return nil, result 
 	end
 
@@ -735,22 +735,33 @@ local function insertCleuStats( stats ) -- signals damage, heal, aura, and miss 
 		insertDmgRecord( dmgRecord )
 
 		result = signalDamageThread( stats )
-		return result
 	end
 
 	if isHealSubEvent( stats ) then
+		if startOfCombat == 0 then
+			startOfCombat = stats[TIMESTAMP]
+		end
+
 		result = signalHealThread(stats)
-		return result
+		-- return result
 	end
 
 	if isAuraSubEvent(stats) then
+		if startOfCombat == 0 then
+			startOfCombat = stats[TIMESTAMP]
+		end
+
 		result = signalAuraThread( stats )
-		return result
+		-- return result
 	end
 
 	if isMissSubEvent( stats ) then
+		if startOfCombat == 0 then
+			startOfCombat = stats[TIMESTAMP]
+		end
+
 		result = signalMissThread( stats )
-		return result
+		-- return result
 	end
 
 	-- Only continue beyond this point if the target is
@@ -793,7 +804,7 @@ local function createHealthBarFrame()
 	f.TargetMaxHealth	= 0
 	f.TargetHealth		= 0
 	f.TargetName 		= nil
-	f.targetGUID		= nil
+	f.TargetGUID		= nil
 
 	if f.TargetMaxHealth == 0 and
 		f.TargetHealth 	== 0 and
@@ -851,7 +862,7 @@ local function setTargetHealth( targetName, targetGUID, targetMaxHealth )
 	f.TargetMaxHealth	= targetMaxHealth
 	f.TargetHealth		= f.TargetMaxHealth
 	f.TargetName 		= targetName
-	f.targetGUID		= targetGUID
+	f.TargetGUID		= targetGUID
 
 	f.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 	f.bar:SetStatusBarColor( 0.0, 1.0, 0.0 )
