@@ -87,10 +87,6 @@ end
 base.ADDON_NAME 		= getAddonName() 
 base.ADDON_VERSION 		= GetAddOnMetadata( base.ADDON_NAME, "Version")
 
-function base:showPopupMsg( msg )
-	UIErrorsFrame:SetTimeVisible(5)
-	UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0 ) 
-end
 function base:enableDebugging()
 	base.DEBUGGING_ENABLED = true
 end
