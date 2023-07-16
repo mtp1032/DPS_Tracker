@@ -67,7 +67,8 @@ local DMG_STARTX 	= 50
 local DMG_XDELTA	= 0
 local DMG_STARTY 	= 25
 local DMG_YDELTA	= 3
-local HEAL_STARTX 	= -DMG_STARTX
+
+local HEAL_STARTX 	= -(2* DMG_STARTX)
 local HEAL_XDELTA	= 0
 local HEAL_STARTY 	= DMG_STARTY
 local HEAL_YDELTA	= 3
