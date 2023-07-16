@@ -22,6 +22,9 @@ local sprintf = _G.string.format
 
 local helpFrame	= nil
 
+local SUCCESS = base.SUCCESS
+local EMPTY_STR = base.EMPTY_STR
+
 -- **************************************************************************************
 --						SLASH COMMANDS
 -- **************************************************************************************
@@ -91,25 +94,58 @@ local line7 = sprintf("   config - Click the <RedX> minimap button\n")
 local line8 = sprintf("   stop - immediately stops logging. Does not affect publication of combat summary.\n")
 local helpMsg = line1..line2..line3..line4..line5..line6..line7..line8
 
-local function postHelpMsg( helpMsg )
+local function postHelpMsg()
 	if helpFrame == nil then
-		helpFrame = frames:createHelpFrame( "DPS Tracker V3.5 Help")
+		helpFrame = display:createHelpFrame( sprintf("%s Help.", L["ADDON_AND_VERSION"] ))
 	end
-	frames:showFrame( helpFrame )
+	display:showFrame( helpFrame )
 	helpFrame.Text:Insert( helpMsg )
 end
 
-SLASH_TRACKER_TEST1 = "/sum" 
-SlashCmdList["TRACKER_TEST"] = function( msg ) 
-    local isValid = validateCmd( msg ) 
-    local cmd = string.lower( msg )  
+-- https://wowwiki-archive.fandom.com/wiki/Creating_a_slash_command
+local function validateCmd( msg )
+    local isValid = true
+    
+    if msg == nil then
+        isValid = false
+    end
+    if msg == EMPTY_STR then
+        isValid = false
+    end
+    return isValid
+end
+local function trackerCommands(cmdStr, editbox)
+	local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
-	if validateCmd( msg ) then
-		cleu:summarizeEncounter()
-	else
-		postHelpMsg( helpMsg )
-	end
-end -- end of test
+    -- pattern matching that skips leading whitespace and whitespace between cmd and args
+    -- any whitespace at end of args is retained
+    local _, _, cmd, args = string.find(cmdStr, "%s?(%w+)%s?(.*)")
+    cmd = string.lower( cmd )
+    if cmd == nil then
+        print("Help not implemented yet")
+        return
+    end
+
+    ----------- PRINT A COMBAT / ENCOUNTER SUMMARY  ---------
+    if cmd == "sum" then -- calls cleu:summarizeEncounter()
+        cleu:summarizeEncounter()  
+        return
+    end
+	if cmd == "reset" then -- calls cleu:summarizeEncounter()
+        cleu:resetCombatState()  
+        return
+    end
+
+    if cmd == "help" or cmd == "" then
+        postHelpMsg( helpMsg )
+        return
+    end
+        -- If not handled above, display some sort of help message
+        postHelpMsg( helpMsg )
+  end
+  
+  SLASH_DPS_TRACKER1 = "/report"
+  SlashCmdList["DPS_TRACKER"] = trackerCommands  -- adds "/monitor" to the commands list
 
 local fileName = "CommandLine.lua"
 if base:debuggingIsEnabled() then
