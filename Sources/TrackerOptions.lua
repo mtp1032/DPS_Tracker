@@ -15,7 +15,7 @@ local EMPTY_STR = base.EMPTY_STR
 ------------------------------------------------------------
 local optionsPanel = nil
 
-local defaultTargetHealth = UnitHealthMax("Player") * 2
+local defaultTargetHealth = UnitHealthMax("Player") / 2
 DPS_TRACKER_CHECKBOX_VARS	= {}
 
 local dmg  = 1
@@ -177,7 +177,9 @@ local function createInputDialogBox(frame, title, xPos, yPos) -- creates the inp
 	f:SetText( defaultTargetHealth )
 	f:SetScript("OnEnterPressed", 
 		function(self,button)
-			cleu:setTargetDummyHealth( defaultTargetHealth )
+			local targetHealth = f:GetText()
+			if targetHealth == EMPTY_STR then targetHealth = defaultTargetHealth end
+			cleu:setTargetDummyHealth( targetHealth )
 			ClearCursor()
 			f:SetText("")
 			optionsPanel:Hide()
@@ -244,16 +246,16 @@ local function createOptionsPanel()
 
 	local str1 = "DPS_Tracker"
 	local line = sprintf("                      ")
-	local str2 = sprintf("DPS_Tracker is designed to be used with target dummies although")
+	local str2 = sprintf("    DPS_Tracker is designed to be used with target dummies, although")
 	local str3 = sprintf("its use while questing or running dungeons is fully supported.")
-	local str4 = sprintf("The allows you to specify the health of a target dummy.")
+	local str4 = sprintf("DPS_Tracker allows you to specify the health of a target dummy.")
 	local str5 = sprintf("When your attacks have reduced the target's health to zero ")
-	local str6 = sprintf("combat will cease and you can call up a summary of your encounter.")
-	local str7 = sprintf("                ")
-	local str8 = sprintf("In addition to total Damage output and your DPS, DPS_Tracker")
+	local str6 = sprintf("combat data recording will cease and you can call up a summary ")
+	local str7 = sprintf("of the encounter.")
+	local str8 = sprintf("    In addition to total Damage output and your DPS, DPS_Tracker")
 	local str9 = sprintf("will report the following metrics:")
-	local str10 = sprintf("Total damage and DPS per spell/attack is ascending order.")
-	local str11 = sprintf("The number of times your attacks missed, were blocked, parried, etc.")
+	local str10 = sprintf("   - Total damage and DPS per spell/attack.")
+	local str11 = sprintf("   - The number of times your attacks missed, were blocked, parried, etc.")
 	local messageText = frame:CreateFontString(nil, "ARTWORK","GameFontNormal")
 	messageText:SetJustifyH("LEFT")
 	messageText:SetPoint("TOP", 0, -70)
