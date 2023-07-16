@@ -29,9 +29,7 @@ Libs\ACE\AceDB-3.0\AceDB-3.0.xml
 Sources\Base.lua
 Locales\EnUS_DPS_Tracker.lua
 ##
-Utilities\ErrorHandling.lua
-Utilities\Utils.lua
-Utilities\Frames.lua
+Utilities\Display.lua
 Utilities\MsgFrame.lua
 Utilities\ScrollText.lua
 ##
