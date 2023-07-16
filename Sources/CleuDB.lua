@@ -24,7 +24,6 @@ local L = DPS_Tracker.L
 
 local sprintf = _G.string.format
 
-CLEU_STATS_SAVED_VARS = {}
 SAVED_HEALTHBAR_SETTING = {}
 
 local FRAME_POINT 		= SAVED_HEALTHBAR_SETTING[1]
@@ -50,24 +49,26 @@ local healSubEventsDB	= {}
 local auraSubEventsDB	= {}
 local missSubEventsDB	= {}
 
+local cleuElapsedTime = 0
+
 -- RECORD LAYOUT IN THE dmgRecordTable
 --  	{sourceName, targetGUID, spellName, spellSchool, 
 --	  		normalDmg, critDmg, overkill, resisted, 
 --				blocked, absorbed, numCalls }
 --
 -- EXAMPLE:
--- 		dmgRecordsTable = {
+-- 		dmgRecordsDB = {
 -- 			Frostbolt, ,,, 5
 -- 			ice lance, ,,, 11
 -- 			blizzard, ,,, 56
 -- 		}	
 -- 
-local dmgRecordsTable	= {}
+local dmgRecordsDB		= {}
 local healRecordsDB		= {}
 local missRecordsDB		= {}
 local auraRecordsDB		= {}
 
-local encounterDB		= {}	-- each encounter is a dmgRecordsTable + elapsedTime
+local encounterDB		= {}
 
 local spellSchoolNames = {
 	{1,  "Physical"},
@@ -103,18 +104,11 @@ local spellSchoolNames = {
 	{126, "Magic"},
 	{127, "Chaos"}
 }
-local function getSpellSchool( index )
-	for i, v in ipairs(spellSchoolNames) do
-		if v[1] == index then return v[2] end
-	end
-	return nil
-end
 
 local targetHealthBar	= nil
-local combatEventLog 	= nil
 local startOfCombat			= 0
 local totalEncounterDmg		= 0
-local totalHealing		= 0
+local totalEncounterHealing	= 0
 local guardianIsActive = false
 
 local DISPLAY_DMG_ENABLED 		= false
@@ -136,42 +130,42 @@ local SIG_STOP              = thread.SIG_STOP
 local SIG_NONE_PENDING      = thread.SIG_NONE_PENDING
 
 ------ INDICES FOR THE CLEU SUBEVENT TABLE----
-local TIMESTAMP			= 1		
-local SUBEVENT			= 2
-local HIDECASTER		= 3
-local SOURCEGUID 		= 4	
-local SOURCENAME		= 5 	
-local SOURCEFLAGS		= 6 	
-local SOURCERAIDFLAGS	= 7	
-local TARGETGUID		= 8 	
-local TARGETNAME		= 9 	
-local TARGETFLAGS		= 10 	
-local TARGETRAIDFLAGS	= 11
-local SPELLID			= 12
-local SWING_DMG			= 12
-local SPELLNAME			= 13
-local AURA_NAME			= 13
-local SPELLSCHOOL		= 14
-local DMG_AMOUNT		= 15
-local HEAL_AMOUNT		= 15
-local MISS_TYPE			= 15
-local AURA_TYPE			= 15
-local DMG_OVERKILL		= 16
-local MISS_OFFHAND		= 16	
-local HEAL_OVERHEALED	= 16
-local AURA_AMOUNT		= 16
-local DMG_SCHOOL		= 17
-local MISS_AMOUNT		= 17
-local HEAL_ABSORBED		= 17
-local DMG_RESISTED		= 18
-local MISS_CRITICAL		= 18
-local HEAL_IS_CRITICAL	= 18
-local DMG_BLOCKED		= 19
-local DMG_ABSORBED		= 20
-local DMG_IS_CRIT		= 21 -- boolean
-local DMG_GLANCING		= 22 -- boolean
-local DMG_CRUSHING		= 23 -- boolean
-local DMG_IS_OFFHAND 	= 24 -- boolean
+local CLEU_TIMESTAMP			= 1		
+local CLEU_SUBEVENT			= 2
+local CLEU_HIDECASTER		= 3
+local CLEU_SOURCEGUID 		= 4	
+local CLEU_SOURCENAME		= 5 	
+local CLEU_SOURCEFLAGS		= 6 	
+local CLEU_SOURCERAIDFLAGS	= 7	
+local CLEU_TARGETGUID		= 8 	
+local CLEU_TARGETNAME		= 9 	
+local CLEU_TARGETFLAGS		= 10 	
+local CLEU_TARGETRAIDFLAGS	= 11
+local CLEU_SPELLID			= 12
+local CLEU_SWING_DMG		= 12
+local CLEU_SPELLNAME		= 13
+local CLEU_AURA_NAME		= 13
+local CLEU_SPELLSCHOOL		= 14
+local CLEU_DMG_AMOUNT		= 15
+local CLEU_HEAL_AMOUNT		= 15
+local CLEU_MISS_TYPE		= 15
+local CLEU_AURA_TYPE		= 15
+local CLEU_OVERKILL			= 16
+local CLEU_OVERHEAL			= 16
+local CLEU_MISS_OFFHAND		= 16	
+local CLEU_AURA_AMOUNT		= 16
+local CLEU_DMG_SCHOOL		= 17
+local CLEU_MISS_AMOUNT		= 17
+local CLEU_HEAL_ABSORBED	= 17
+local CLEU_DMG_RESISTED		= 18
+local CLEU_MISS_CRITICAL	= 18
+local CLEU_HEAL_IS_CRITICAL	= 18
+local CLEU_DMG_BLOCKED		= 19
+local CLEU_DMG_ABSORBED		= 20
+local CLEU_DMG_IS_CRIT		= 21 -- boolean
+local CLEU_DMG_GLANCING		= 22 -- boolean
+local CLEU_DMG_CRUSHING		= 23 -- boolean
+local CLEU_DMG_IS_OFFHAND 	= 24 -- boolean
 
 -- ********************************************************************************
 --							DAMAGE RECORD INDICES
@@ -179,15 +173,72 @@ local DMG_IS_OFFHAND 	= 24 -- boolean
 local REC_SPELLNAME		= 1
 local REC_SPELLSCHOOL	= 2
 local REC_DMG			= 3
+local REC_HEALS			= 3
 local REC_CRIT_DMG		= 4
+local REC_CRIT_HEALS	= 4
 local REC_OVERKILL  	= 5
+local REC_OVERHEALING	= 5
 local REC_RESISTED  	= 6
 local REC_BLOCKED   	= 7
 local REC_ABSORBED  	= 8
-local REC_CALLS     	= 9 
-local NUM_RECORD_ELEMENTS = REC_CALLS
+local REC_NUM_CASTS     	= 9 
+local NUM_RECORD_ELEMENTS = REC_NUM_CASTS
 
-local function dbgDumpDmgRecord( prefix, dmgRecord )
+local missVerbs = {
+	{"BLOCK", 	"blocked"},
+	{"ABSORB", 	"absorbed"},
+	{"DEFLECT", "deflected"},
+	{"MISS", 	"missed"},
+	{"PARRY", 	"parried"},
+	{"DODGE", 	"dodged"},
+	{"RESIST", 	"resisted"}
+}
+
+local function getSpellSchool( index )
+	for i, v in ipairs(spellSchoolNames) do
+		if v[1] == index then return v[2] end
+	end
+	return nil
+end
+local function getMeanAndStdDev( dataSet )
+	assert( dataSet ~= nil, "ASSERT FAILED: Dataset was nil.")
+	assert( type( dataSet ) == "table", "ASSERT FAILED: Dataset not a table")
+
+	local damage = 0
+	local critDamage = 0
+	local critCount = 0
+	local sampleSize = 0
+
+	for i, entry in ipairs( dataSet) do
+		damage = damage + entry[2]
+		if entry[3] == true then
+			critCount = critCount + 1
+			critDamage = critDamage + damage
+		end
+		sampleSize = sampleSize + 1
+	end
+
+	local mean = damage/sampleSize
+	local critMean = critDamage/critCount
+	
+	-- calculate the variance
+	local diffSquared = 0
+	local damage = 0
+	local sum = 0
+	local n = 0
+	for i, entry in ipairs( dataSet) do
+		local damage = damage + entry[2]
+		diffSquared = (damage - mean)^2
+		sum = sum + diffSquared
+	end
+
+	-- local n = #dataSet
+	local variance = sum/(sampleSize - 1)
+	local stdDev = math.sqrt( variance )
+
+	return mean, stdDev, variance
+end
+local function dbgDumpDmgRecord( dmgRecord )
 	local s = nil
 	if dmgRecord[REC_OVERKILL] ~= -1 then	-- indicates a guardian damage record
 		s = sprintf("Spell: %s, School: %s, Dmg: %d, Crit: %d, %d, %d, %d, %d, Calls: %d\n",	
@@ -199,16 +250,35 @@ local function dbgDumpDmgRecord( prefix, dmgRecord )
 			dmgRecord[REC_RESISTED],
 			dmgRecord[REC_BLOCKED],
 			dmgRecord[REC_ABSORBED],
-			dmgRecord[REC_CALLS] )
+			dmgRecord[REC_NUM_CASTS] )
 	else
 		s = sprintf("\n Spell: %s, School: %s, Dmg: %d, Crit: %d, Calls: %d\n",	
 			dmgRecord[REC_SPELLNAME],
 			dmgRecord[REC_SPELLSCHOOL],
 			dmgRecord[REC_DMG],
 			dmgRecord[REC_CRIT_DMG],
-			dmgRecord[REC_CALLS] )
+			dmgRecord[REC_NUM_CASTS] )
 	end
-	mf:postMsg( prefix .. " " .. s )				
+	return s			
+end
+local function dbgDumpHealRecord( R  )
+	local str = nil
+
+	if R[REC_CRIT_DMG] > 0 then
+		str = sprintf("[%s] School: %s, Amount Healed: %d (Crit), Over healed %d\n",	
+			R[REC_SPELLNAME],
+			R[REC_SPELLSCHOOL],
+			R[REC_CRIT_HEALS],
+			R[REC_OVERHEALING] )
+	else
+		str = sprintf("[%s] School: %s, Amount Healed: %d, Over healed %d\n",	
+		R[REC_SPELLNAME],
+		R[REC_SPELLSCHOOL],
+		R[REC_HEALS],
+		R[REC_OVERHEALING] )
+	end
+
+	return str			
 end
 local function dbgDumpSavedVars()
 	mf:postMsg( "Dump of SAVED_HEALTHBAR_FRAME\n")
@@ -255,15 +325,6 @@ local heal_h 	= nil
 local aura_h 	= nil
 local miss_h 	= nil
 
-local missVerbs = {
-	{"BLOCK", 	"blocked"},
-	{"ABSORB", 	"absorbed"},
-	{"DEFLECT", "deflected"},
-	{"MISS", 	"missed"},
-	{"PARRY", 	"parried"},
-	{"DODGE", 	"dodged"},
-	{"RESIST", 	"resisted"}
-}
 local function missType2missName( missType )
 	for i, miss in ipairs( missVerbs ) do
 		if miss[1] == missType then
@@ -274,7 +335,7 @@ local function missType2missName( missType )
 end
 local function isDamageSubEvent( stats )
 	local isValid = false
-	local str = string.sub( stats[SUBEVENT], -7 )
+	local str = string.sub( stats[CLEU_SUBEVENT], -7 )
 	if str == "_DAMAGE" then 
 		isValid = true
 	end	
@@ -282,7 +343,7 @@ local function isDamageSubEvent( stats )
 end
 local function isHealSubEvent( stats )
 	local isValid = false
-	local str = string.sub( stats[SUBEVENT], -5 )
+	local str = string.sub( stats[CLEU_SUBEVENT], -5 )
 	if str == "_HEAL" then 
 		isValid = true
 	end
@@ -291,7 +352,7 @@ local function isHealSubEvent( stats )
 end
 local function isAuraSubEvent( stats )
 	local isValid = false	
-	local str = string.sub( stats[SUBEVENT], 1,11 )
+	local str = string.sub( stats[CLEU_SUBEVENT], 1,11 )
 	if str == "SPELL_AURA_" then 
 		isValid = true
 	end
@@ -299,7 +360,7 @@ local function isAuraSubEvent( stats )
 end
 local function isMissSubEvent( stats )
 	local isValid = false
-	local str = string.sub( stats[SUBEVENT], -5 )
+	local str = string.sub( stats[CLEU_SUBEVENT], -5 )
 	if str == "_MISSED" then 
 		isValid = true 
 	end
@@ -309,7 +370,7 @@ local function scrollDmgIsEnabled()
 	return DISPLAY_DMG_ENABLED
 end
 local function sortByTimestamp( stats1, stats2 )
-	return stats1[TIMESTAMP] < stats2[TIMESTAMP]
+	return stats1[CLEU_TIMESTAMP] < stats2[CLEU_TIMESTAMP]
 end
 local function healTextIsEnabled()
 	return DISPLAY_HEALS_ENABLED
@@ -322,7 +383,7 @@ local function missTextIsEnabled()
 end
 local function getDmgOffset( stats )
 	local offset = 0
-	local s = string.sub( stats[SUBEVENT], 1, 6)
+	local s = string.sub( stats[CLEU_SUBEVENT], 1, 6)
 	if s == "SWING_" then 
 		offset = 3
 	end
@@ -336,8 +397,8 @@ local function signalDamageThread( stats ) -- sends thread:sentSignal( damage_h,
 	-- now prepare the string to be displayed
 	local offset = getDmgOffset( stats )
 	
-	local isCrit	= DMG_IS_CRIT	- offset
-	local dmgAmount	= DMG_AMOUNT	- offset
+	local isCrit	= CLEU_DMG_IS_CRIT	- offset
+	local dmgAmount	= CLEU_DMG_AMOUNT	- offset
 
 	local dmgString = tostring( stats[dmgAmount])
 	local entry = {stats[isCrit], dmgString }
@@ -352,12 +413,10 @@ local function signalHealThread( stats ) -- sends thread:sentSignal( heal_h, SIG
 	if not cleu:isScrollingHealsEnabled() then
 		return result
 	end
-
 	-- now prepare the string to be displayed
-	local healingString = tostring( stats[HEAL_AMOUNT] )
-	table.insert( healSubEventsDB, stats )
+	local healingString = tostring( stats[CLEU_HEAL_AMOUNT] )
 
-	local entry = {stats[HEAL_IS_CRITICAL], healingString }
+	local entry = {stats[CLEU_HEAL_IS_CRITICAL], healingString }
 	table.insert( healStringsDB, entry )
 	result = thread:sendSignal( heal_h, SIG_ALERT )
 	return result
@@ -374,11 +433,11 @@ local function signalAuraThread( stats ) -- sends thread:sentSignal( aura_h, SIG
 
 	
 	-- now prepare the string to be displayed
-	local subEvent = stats[SUBEVENT]
+	local subEvent = stats[CLEU_SUBEVENT]
 
-	if stats[AURA_AMOUNT] ~= nil then auraAmount = stats[AURA_AMOUNT] end
-	local auraName 	 = stats[AURA_NAME]
-	local targetName = stats[TARGETNAME]
+	if stats[CLEU_OVERKILL] ~= nil then auraAmount = stats[CLEU_OVERKILL] end
+	local auraName 	 = stats[CLEU_AURA_NAME]
+	local targetName = stats[CLEU_TARGETNAME]
 
 	if  subEvent == "SPELL_AURA_APPLIED" or subEvent == "SPELL_AURA_APPLIED_DOSE" then
         if auraAmount > 0 then
@@ -414,7 +473,7 @@ local function signalMissThread( stats ) -- sends thread:sentSignal( miss_h, SIG
 		arg[14] NIL,    amountMissed
 		arg[15] NIL, 	isCritical 
 		]]
-	local subEvent = stats[SUBEVENT]
+	local subEvent = stats[CLEU_SUBEVENT]
 	if subEvent ~= "SWING_MISSED" and
 		subEvent ~= "SPELL_MISSED" and
 		subEvent ~= "SPELL_PERIODIC_MISS" and
@@ -424,10 +483,10 @@ local function signalMissThread( stats ) -- sends thread:sentSignal( miss_h, SIG
 
 	local offset = getDmgOffset( stats )
 
-	local missAmount = stats[MISS_AMOUNT - offset]
-	local sourceName = stats[SOURCENAME]
-	local targetName = stats[TARGETNAME]
-	local missName = missType2missName( stats[MISS_TYPE - offset] )
+	local missAmount = stats[CLEU_MISS_AMOUNT - offset]
+	local sourceName = stats[CLEU_SOURCENAME]
+	local targetName = stats[CLEU_TARGETNAME]
+	local missName = missType2missName( stats[CLEU_MISS_TYPE - offset] )
 	local missString = nil
 
 	if missAmount ~= nil then
@@ -448,28 +507,20 @@ spell was cast by the player. In the example below,
 5 frostbolts, 11 ice lances, and 56
 blizzard spells were cast by the player
 
-	dmgRecordsTable = {
+	dmgRecordsDB = {
 		Frostbolt, ,,, 5
 		ice lance, ,,, 11
 		blizzard, ,,, 56
 	}	
 
 The following two functions creates a dmgRecord and then
-inserts it into the dmgRecordsTable.
+inserts it into the dmgRecordsDB.
 
 local sum = createDmgRecord( stats )
 insertDmgRecord( sum) 
  ]]
+ ---------------- DAMAGE RECORD ----------------------
 local function dmgRecordIsValid( dmgRecord )
-		-- local REC_SPELLNAME		= 1
-		-- local REC_SPELLSCHOOL	= 2
-		-- local REC_DMG			= 3
-		-- local REC_CRIT_DMG		= 4
-		-- local REC_OVERKILL  		= 5
-		-- local REC_RESISTED  		= 6
-		-- local REC_BLOCKED   		= 7
-		-- local REC_ABSORBED  		= 8
-		-- local REC_CALLS     		= 9 
 
 	assert( dmgRecord  ~= nil, "ASSERT FAILURE: Input param sum = nil" )
 	assert( #dmgRecord == NUM_RECORD_ELEMENTS, sprintf("ASSERT FAILURE: Input param Ill-Formed - %d elements.", #dmgRecord ))
@@ -485,75 +536,52 @@ local function dmgRecordIsValid( dmgRecord )
 	return true
 end
 local function combineDmgRecords( existingRec, newRec ) -- combines two damage records of the same spellname into one record
-	local s1 = existingRec[REC_SPELLNAME]
-	local s2 = newRec[REC_SPELLNAME]
-	assert( s1 == s2, sprintf("ASSERT FAILED: Different Spellnames, %s, %s", s1, s2))
-
-	for i = 1, NUM_RECORD_ELEMENTS do
-		assert( existingRec[i] ~= nil, sprintf("ASSERT FAILURE: rec[%d] was nil.", i ))
-		assert( newRec[i] ~= nil, sprintf("ASSERT FAILURE: rec[%d] was nil.", i ))
-	end
-
-	existingRec[REC_DMG]		= existingRec[REC_DMG]		+ newRec[REC_DMG]
-    existingRec[REC_CRIT_DMG]	= existingRec[REC_CRIT_DMG] + newRec[REC_CRIT_DMG]
-    existingRec[REC_OVERKILL]	= existingRec[REC_OVERKILL] + newRec[REC_OVERKILL]
-    existingRec[REC_RESISTED]	= existingRec[REC_RESISTED] + newRec[REC_RESISTED]
-    existingRec[REC_BLOCKED]	= existingRec[REC_BLOCKED]  + newRec[REC_BLOCKED]
-    existingRec[REC_ABSORBED]	= existingRec[REC_ABSORBED] + newRec[REC_ABSORBED]
-    existingRec[REC_CALLS]		= existingRec[REC_CALLS] 	+ newRec[REC_CALLS]
-    return existingRec
+	existingRec[REC_DMG]		= existingRec[REC_DMG]		 + newRec[REC_DMG]
+    existingRec[REC_CRIT_DMG]	= existingRec[REC_CRIT_DMG]  + newRec[REC_CRIT_DMG]
+    existingRec[REC_OVERKILL]	= existingRec[REC_OVERKILL]  + newRec[REC_OVERKILL]
+    existingRec[REC_RESISTED]	= existingRec[REC_RESISTED]  + newRec[REC_RESISTED]
+    existingRec[REC_BLOCKED]	= existingRec[REC_BLOCKED]   + newRec[REC_BLOCKED]
+    existingRec[REC_ABSORBED]	= existingRec[REC_ABSORBED]  + newRec[REC_ABSORBED]
+    existingRec[REC_NUM_CASTS]	= existingRec[REC_NUM_CASTS] + newRec[REC_NUM_CASTS]
 end
-local function insertDmgRecord( dmgRecord ) -- adds a damage record to dmgRecordsTable
+local function insertDmgRecord( dmgRecord ) -- adds a damage record to dmgRecordsDB
 	local recordUpdated = false
-	local numRecords = #dmgRecordsTable
-	if numRecords == 0 then table.insert( dmgRecordsTable, dmgRecord ) return end
+	local numRecords = #dmgRecordsDB
+	if numRecords == 0 then table.insert( dmgRecordsDB, dmgRecord ) return end
 
 	local record = nil
 	for i = 1, numRecords do
-		existingRecord = dmgRecordsTable[i]
+		local existingRecord = dmgRecordsDB[i]
 		if dmgRecord[REC_SPELLNAME] == existingRecord[REC_SPELLNAME] then
-			table.remove( dmgRecordsTable, i )
-			local combinedRec = combineDmgRecords( existingRecord, dmgRecord )
-			table.insert( dmgRecordsTable, combinedRec )
+			combineDmgRecords( existingRecord, dmgRecord )
 			recordUpdated = true
 		end
 	end
 
-	if not recordUpdated then
-		table.insert( dmgRecordsTable, dmgRecord )
+	if not recordUpdated then -- this record is appearing for the first time.
+		table.insert( dmgRecordsDB, dmgRecord )
 	end
-	assert( #dmgRecord == NUM_RECORD_ELEMENTS, sprintf("ASSERT FAILURE: Expected %d elements, got %d.", NUM_RECORD_ELEMENTS, #dmgRecord ))
 end
 local function createDmgRecord( stats ) -- create a single damage record from a stats block
 	local dmgRecord	= {EMPTY_STR, EMPTY_STR, 0, 0, 0, 0, 0, 0, 0}
 
--- local REC_SPELLNAME		= 1
--- local REC_SPELLSCHOOL	= 2
--- local REC_DMG			= 3
--- local REC_CRIT_DMG		= 4
--- local REC_OVERKILL  		= 5
--- local REC_RESISTED  		= 6
--- local REC_BLOCKED   		= 7
--- local REC_ABSORBED  		= 8
--- local REC_CALLS     		= 9 
-
 	local offset	= getDmgOffset( stats )
 	
-	local isCritical	= DMG_IS_CRIT 	- offset
-	local overkill 		= DMG_OVERKILL 	- offset
-	local resisted 		= DMG_RESISTED 	- offset
-	local blocked 		= DMG_BLOCKED 	- offset
-	local absorbed 		= DMG_ABSORBED	- offset
-	local dmgDone		= DMG_AMOUNT 	- offset
-	local spellSchool	= SPELLSCHOOL	- offset
+	local isCritical	= CLEU_DMG_IS_CRIT 	- offset
+	local overkill 		= CLEU_OVERKILL 	- offset
+	local resisted 		= CLEU_DMG_RESISTED - offset
+	local blocked 		= CLEU_DMG_BLOCKED 	- offset
+	local absorbed 		= CLEU_DMG_ABSORBED	- offset
+	local dmgDone		= CLEU_DMG_AMOUNT 	- offset
+	local spellSchool	= CLEU_SPELLSCHOOL	- offset
 
-	if stats[SUBEVENT] == "SWING_DAMAGE" then
+	if stats[CLEU_SUBEVENT] == "SWING_DAMAGE" then
 		spellName = "Swing Damage"
 	end
 	if stats[overkill] == nil then
 		stats[overkill] = 0
 	end
-if stats[resisted] == nil then
+	if stats[resisted] == nil then
 		stats[resisted] = 0
 	end
 	if stats[blocked] == nil then
@@ -574,22 +602,94 @@ if stats[resisted] == nil then
 		dmgRecord[REC_DMG]		= stats[dmgDone] -- accum only normal, non-crit damage
 	end
 
-	dmgRecord[REC_SPELLNAME] 	= stats[SPELLNAME]
+	dmgRecord[REC_SPELLNAME] 	= stats[CLEU_SPELLNAME]
 
 	if offset == 3 then 
 		dmgRecord[REC_SPELLNAME] 	= "Melee"
 		dmgRecord[REC_SPELLSCHOOL] = "Physical"
 	else
-		dmgRecord[REC_SPELLNAME] 	= stats[SPELLNAME]
-		dmgRecord[REC_SPELLSCHOOL]	= getSpellSchool( stats[SPELLSCHOOL] ) 
+		dmgRecord[REC_SPELLNAME] 	= stats[CLEU_SPELLNAME]
+		dmgRecord[REC_SPELLSCHOOL]	= getSpellSchool( stats[CLEU_SPELLSCHOOL] ) 
 	end
 
-	dmgRecord[REC_CALLS] = 1
+	dmgRecord[REC_NUM_CASTS] = 1
 	if base:debuggingIsEnabled() then
 		dmgRecordIsValid( dmgRecord )
 	end
     return dmgRecord 
 end
+----------------- HEAL RECORD -------------------------
+local function healRecordIsValid( healRecord )
+
+	assert( healRecord  ~= nil, "ASSERT FAILURE: Input param sum = nil" )
+	assert( #healRecord == NUM_RECORD_ELEMENTS, sprintf("ASSERT FAILURE: Input param Ill-Formed - %d elements.", #healRecord ))
+	for i = 1, NUM_RECORD_ELEMENTS do
+		assert( healRecord[i] ~= nil, sprintf("ASSERT FAILURE: Record[%d] was nil", i ))
+	end
+	assert( type(healRecord[1]) == "string", sprintf("ASSERT FAILURE: expected 'string', got '%s'.", type(healRecord[1])))
+	assert( type(healRecord[2]) == "string", sprintf("ASSERT FAILURE: expected 'string', got '%s'.", type(healRecord[2])))
+
+	for i = 3, NUM_RECORD_ELEMENTS do
+		assert( type(healRecord[i]) == "number", sprintf("ASSERT FAILURE: Record[%d] - Expected 'number' got '%s'.", i, tostring( type(healRecord[i]))))
+	end
+	return true
+end
+local function combineHealRecords( existingRec, newRec ) -- combines two damage records of the same spellname into one record
+	existingRec[REC_HEALS]		= existingRec[REC_HEALS]		 + newRec[REC_HEALS]
+    existingRec[REC_CRIT_HEALS]	= existingRec[REC_CRIT_HEALS]  + newRec[REC_CRIT_HEALS]
+    existingRec[REC_OVERHEALING]	= existingRec[REC_OVERHEALING]  + newRec[REC_OVERHEALING]
+    existingRec[REC_NUM_CASTS]	= existingRec[REC_NUM_CASTS] + newRec[REC_NUM_CASTS]
+end
+local function insertHealRecord( healRecord ) -- adds a damage record to healRecordsDB
+	local isInDB = false
+	local numRecords = #healRecordsDB
+		
+	if numRecords == 0 then table.insert( healRecordsDB, healRecord ) return end
+
+	for i, rec in ipairs( healRecordsDB ) do
+		local rec = healRecordsDB[i]
+		if healRecord[REC_SPELLNAME] == rec[REC_SPELLNAME] then
+			combineHealRecords( rec, healRecord )
+			isInDB = true
+		end
+	end
+
+	if not isInDB then
+		table.insert( healRecordsDB, healRecord )
+	end
+end
+local function createHealRecord( stats ) -- create a single damage record from a stats block
+	local healRecord	= {EMPTY_STR, EMPTY_STR, 0, 0, 0, 0, 0, 0, 0}
+
+	if stats[CLEU_OVERHEAL] == nil then
+		stats[CLEU_OVERHEAL] = 0
+	end
+	if stats[CLEU_HEAL_ABSORBED] == nil then
+		stats[CLEU_HEAL_ABSORBED]	= 0
+	end
+
+	healRecord[REC_OVERHEALING] = stats[CLEU_OVERHEAL]
+	healRecord[REC_RESISTED] 	= 0
+	healRecord[REC_BLOCKED]  	= 0
+	healRecord[REC_ABSORBED] 	= stats[CLEU_HEAL_ABSORBED] 
+
+	if stats[CLEU_HEAL_IS_CRITICAL] then
+		healRecord[REC_CRIT_HEALS]	= stats[CLEU_HEAL_AMOUNT] -- accum only crit damage
+	else
+		healRecord[REC_HEALS]		= stats[CLEU_HEAL_AMOUNT] -- accum only normal, non-crit damage
+	end
+
+	healRecord[REC_SPELLNAME] 	= stats[CLEU_SPELLNAME]
+	healRecord[REC_SPELLSCHOOL]	= getSpellSchool( stats[CLEU_SPELLSCHOOL] ) 
+
+	healRecord[REC_NUM_CASTS] = 1
+	if base:debuggingIsEnabled() then
+		healRecordIsValid( healRecord )
+	end
+	return healRecord 
+end
+-------------------------------------------------------
+
 local function targetIsDummy( targetName )
 	local isDummy = false
 
@@ -608,7 +708,8 @@ function cleu:resetTargetHealthBar()
 	f.TargetMaxHealth	= 0
 	f.TargetHealth		= UnitHealthMax( "Player ")
 	f.TargetName 		= nil
-f.TargetGUID		= nil
+	f.TargetGUID		= nil
+	f.ElapsedTime		= 0
 
 	f.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 	f.bar:SetStatusBarColor( 0.0, 1.0, 0.0 )
@@ -617,12 +718,15 @@ f.TargetGUID		= nil
 	f.bar.text:SetText( "" )
 	f:Hide()
 end
-local function resetCombatState()
+function cleu:resetCombatState()
 	cleu:resetTargetHealthBar()
+	wipe( encounterDB )
+	encounterDB = {}
 	totalEncounterDmg = 0
-	totalHealing = 0
+	totalEncounterHealing = 0
 	startOfCombat = 0
 	guardianIsActive = false
+	cleuElapsedTime	= 0
 
 	wipe( cleuStatsDB )
 	wipe( dmgSubEventsDB )
@@ -635,82 +739,156 @@ local function resetCombatState()
 	wipe( auraStringsDB )
 	wipe( missStringsDB )
 
-	wipe( dmgRecordsTable )
-	-- wipe( healRecordsDB )
+	wipe( dmgRecordsDB )
+	wipe( healRecordsDB )
 	-- wipe( missRecordsDBsDB )
 	-- wipe( auraRecordsDB )
 
 	DEFAULT_CHAT_FRAME:AddMessage("State reset.")
 end
-function cleu:summarizeEncounter() -- called from SLASH_COMMAND. See CommandLine.lua
-	local numEncounters = #encounterDB
-	for i = 1, numEncounters do
-		local encounter = encounterDB[i]
-		local header = encounterDB[i]
-		local dmgStrings = encounter[2]
-		mf:postMsg( encounter[1] )
-		for j = 1, #dmgStrings do
-			mf:postMsg( " " .. dmgStrings[j])
-		end
+local function getElapsedTime()
+	local elapsedTime = 0 
+	if targetHealthBar.ElapsedTime == 0 then
+		elapsedTime = cleuElapsedTime
+	else
+		elapsedTime = targetHealthBar.ElapsedTime
 	end
+	return elapsedTime
 end
-
 -- called from insertCleuStats when the encounter ends
-local function initEncounterDB( elapsedTime ) -- converts dmgRecordTable to an encounter, clears all settings
+local function createDmgEncounter() -- converts dmgRecordTable to an encounter, clears all settings
 
-	spellStrings = {}
-	for i = 1, #dmgRecordsTable do
-		local combatRec 		= dmgRecordsTable[i]
-		local spellName 		= combatRec[REC_SPELLNAME]
-		local spellCritDmg 		= combatRec[REC_CRIT_DMG]
-		local spellNormalDmg	= combatRec[REC_DMG]
-		local totalSpellDmg		= spellCritDmg + spellNormalDmg
-		local percentCrit		= spellCritDmg/totalSpellDmg * 100
-		local totalCasts		= combatRec[REC_CALLS]
-		local DPC				= totalSpellDmg / totalCasts		
-		
-		totalEncounterDmg = totalEncounterDmg + totalSpellDmg
-		local s = nil
-		if totalCrit == 0 then
-			s = sprintf("[%s] Damage: %d DPC: %0.2f (%d casts)\n", spellName, totalSpellDmg, DPC, totalCasts )
+	local recordTable = {}
+
+	local totalNormalDmg 	= 0
+	local totalCritDmg		= 0
+
+	for i = 1, #dmgRecordsDB do
+		local combatRec = dmgRecordsDB[i]
+		totalCritDmg	= totalCritDmg + combatRec[REC_CRIT_DMG]
+		totalNormalDmg	= totalNormalDmg + combatRec[REC_DMG]
+	end
+
+	for i = 1, #dmgRecordsDB do
+		local combatRec = dmgRecordsDB[i]
+		local dmgRecord = nil
+
+		local spellName 	= combatRec[REC_SPELLNAME]
+		local critDmg 		= combatRec[REC_CRIT_DMG]
+		local normalDmg 	= combatRec[REC_DMG]
+		local numCasts		= combatRec[REC_NUM_CASTS]
+
+		local totalDmg		= normalDmg + critDmg
+		local percentCrit 	= critDmg/totalDmg * 100
+		local DPC			= totalDmg/numCasts
+
+		if critDmg > 0 then
+			dmgRecord = sprintf("[%s] Damage: %d, Crit %0.1f%%, Damage/Cast %0.1f\n", spellName, totalDmg, percentCrit, DPC  )
 		else
-			s = sprintf("[%s] Damage: %d, Crit %d (Percent Crit %0.2f%%), DPC %0.2f (%d casts)\n",
-			spellName, totalSpellDmg, spellCritDmg, percentCrit, DPC, totalCasts )
+			dmgRecord = sprintf("[%s] Damage: %d, Damage/Cast %0.1f\n", spellName, totalDmg, DPC  )
 		end
 
-		spellStrings[i] = s
+		recordTable[i] = dmgRecord
 	end
-	local totalDPS = totalEncounterDmg/elapsedTime
+
+	local elapsedTime = getElapsedTime()
+
+	local totalDamage = totalNormalDmg + totalCritDmg
+	local totalDPS = totalDamage/elapsedTime
+	local percentCrit = (totalCritDmg/totalDamage) * 100
 	local player = UnitName( "Player")
-	local header = sprintf("\n\n[%s] Encounter completed after %d seconds. Total Damage %d (DPS %0.2f)\n", 
-					player, elapsedTime, totalEncounterDmg, totalDPS )
-	local encounter = {header, spellStrings }	
-	table.insert( encounterDB, encounter )	
+
+	local title = sprintf("\n\nDAMAGE: combat completed after %d seconds.\n", elapsedTime)
+	local subHeader1 = sprintf("Total Damage %d (%0.1f%% Crit), DPS %0.1f\n", totalDamage, percentCrit, totalDPS )
+	header = sprintf("%s%s\n", title, subHeader1 )
+	
+	local encounter = {header, recordTable }	
+	-- table.insert( encounterDB, encounter )	
+	return encounter
 end
-local function printEncounters()
-	local numEncounters = #encounterDB
-	for i = 1, numEncounters do
-		local encounter = encounterDB[i]
-		local header = encounterDB[i]
-		local dmgStrings = encounter[2]
-		mf:postMsg( encounter[1] )
-		for j = 1, #dmgStrings do
-			mf:postMsg( "     " .. dmgStrings[j])
-		end
+local function createHealingEncounter() -- converts dmgRecordTable to an encounter, clears all settings
+	local recordTable = {}
+	local totalNormalHeals 	= 0
+	local totalCritHeals	= 0
+	local totalOverHeal		= 0
+
+	for i = 1, #healRecordsDB do
+		local combatRec 	= healRecordsDB[i]
+		totalCritHeals		= totalCritHeals + combatRec[REC_CRIT_HEALS]
+		totalNormalHeals	= totalNormalHeals + combatRec[REC_HEALS]
+		totalOverHeal		= totalOverHeal + combatRec[REC_OVERHEALING]
 	end
+	for i = 1, #healRecordsDB do
+		local combatRec = healRecordsDB[i]
+		local healRecord = nil
+
+		local spellName 	= combatRec[REC_SPELLNAME]
+		local critHeals 	= combatRec[REC_CRIT_HEALS]
+		local normalHeals 	= combatRec[REC_HEALS]
+		local numCasts		= combatRec[REC_NUM_CASTS]
+		local overHeal		= combatRec[REC_OVERHEALING]
+
+		local totalHeals	= normalHeals + critHeals
+		local percentCrit 	= critHeals/totalHeals * 100
+		local DPC			= totalHeals/numCasts
+
+		if critHeals > 0 then
+			healRecord = sprintf("[%s] Heals: %d (Over heal %d), Crit %0.1f%%, Heals/Cast %0.1f\n", spellName, totalHeals, overHeal, percentCrit, DPC  )
+		else
+			healRecord = sprintf("[%s] Heals: %d (Over heal %d), Heals/Cast %0.1f\n", spellName, totalHeals, overHeal, DPC  )
+		end
+
+		recordTable[i] = healRecord
+	end
+	local elapsedTime = getElapsedTime()
+
+	local totalHealing = totalNormalHeals + totalCritHeals
+	local totalHPS = totalHealing/elapsedTime
+	local percentCrit = (totalCritHeals/totalHealing) * 100
+	local player = UnitName( "Player")
+
+	local title = sprintf("\n\nSELF-HEALING: combat completed after %d seconds.\n", elapsedTime)
+	local subHeader1 = nil
+
+	if totalCritHeals > 0 then
+		subHeader1 = sprintf("Total Healing %d (%0.1f%% crit), HPS (Heals/Second) %0.1f\n", totalHealing, percentCrit, totalHPS )
+	else
+		subHeader1 = sprintf("Total Healing %d, Heals/Second %0.1f\n", totalHealing, totalHPS )
+	end
+	header = sprintf("%s%s\n", title, subHeader1 )
+	
+	local encounter = {header, recordTable }	
+	-- table.insert( encounterDB, encounter )
+	return encounter	
+end
+function cleu:summarizeEncounter() -- called from SLASH_COMMAND. See CommandLine.lua
+	local dmgEncounter 	= createDmgEncounter()
+	local healEncounter = createHealingEncounter()
+
+	-- print the damage encounter
+	local spellTable 	= dmgEncounter[2]
+	mf:postMsg( dmgEncounter[1] )
+	for j = 1, #spellTable do
+		mf:postMsg( sprintf("     %s", spellTable[j] ))
+	end
+
+	-- print the heal encounter
+	header 		= healEncounter[1]
+	spellTable 	= healEncounter[2]
+	mf:postMsg( healEncounter[1] )
+	for j = 1, #spellTable do
+		mf:postMsg( sprintf("     %s", spellTable[j] ))
+	end
+	
 end
 local function updateHealthBar( stats )
 	local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 	local f = targetHealthBar
-
-	-- do not proceed if this damage is to a
-	-- target different than the player's, e.g.,
-	-- an AOE cast.
-	if f.TargetGUID ~= stats[TARGETGUID] then 
+	if f.TargetGUID ~= stats[CLEU_TARGETGUID] then 
 		return nil, result 
 	end
 
-	f.TargetHealth = f.TargetHealth - stats[DMG_AMOUNT]
+	f.TargetHealth = f.TargetHealth - stats[CLEU_DMG_AMOUNT]
 	if f.TargetHealth <= 0 then 
 		f.bar:SetSmoothedValue( 0 )
 	else
@@ -728,59 +906,83 @@ local function insertCleuStats( stats ) -- signals damage, heal, aura, and miss 
 
 	if isDamageSubEvent( stats ) then
 		if startOfCombat == 0 then
-			startOfCombat = stats[TIMESTAMP]
+			startOfCombat = stats[CLEU_TIMESTAMP]
 		end
 
-		dmgRecord = createDmgRecord( stats ) 
+		local dmgRecord = createDmgRecord( stats ) 
 		insertDmgRecord( dmgRecord )
+		local logEntry = dbgDumpDmgRecord( dmgRecord )
+		-- mf:postLogEntry( logEntry )
 
 		result = signalDamageThread( stats )
+		if result[2] == "completed" then
+			local logMsg = sprintf("%s damage_h has completed.", thread:prefix())
+			DEFAULT_CHAT_FRAME:AddMessage( logMsg, 1.0, 1.0, 0.0 )
+		end
 	end
 
 	if isHealSubEvent( stats ) then
 		if startOfCombat == 0 then
-			startOfCombat = stats[TIMESTAMP]
+			startOfCombat = stats[CLEU_TIMESTAMP]
+		end
+
+		local healRecord = createHealRecord( stats ) 
+		insertHealRecord( healRecord )
+		local logEntry = dbgDumpHealRecord( healRecord )
+		-- mf:postLogEntry( logEntry )
+
+		result = signalHealThread(stats)
+		if result[2] == "completed" then
+			local logMsg = sprintf("%s heal_h has completed.", thread:prefix())
+			DEFAULT_CHAT_FRAME:AddMessage( logMsg, 1.0, 1.0, 0.0 )
+		end
+	end
+	if isAuraSubEvent(stats) then
+		if startOfCombat == 0 then
+			startOfCombat = stats[CLEU_TIMESTAMP]
+		end
+
+		result = signalAuraThread(stats)
+		if result[2] == "completed" then
+			local logMsg = sprintf("%s aura_h has completed.", thread:prefix())
+			DEFAULT_CHAT_FRAME:AddMessage( logMsg, 1.0, 1.0, 0.0 )
+		end
+		return result
+	end
+	if isMissSubEvent( stats ) then
+		if startOfCombat == 0 then
+			startOfCombat = stats[CLEU_TIMESTAMP]
 		end
 
 		result = signalHealThread(stats)
-		-- return result
-	end
-
-	if isAuraSubEvent(stats) then
-		if startOfCombat == 0 then
-			startOfCombat = stats[TIMESTAMP]
+		if result[2] == "completed" then
+			local logMsg = sprintf("%s miss_h has completed.", thread:prefix())
+			DEFAULT_CHAT_FRAME:AddMessage( logMsg, 1.0, 1.0, 0.0 )
 		end
-
-		result = signalAuraThread( stats )
-		-- return result
-	end
-
-	if isMissSubEvent( stats ) then
-		if startOfCombat == 0 then
-			startOfCombat = stats[TIMESTAMP]
-		end
-
-		result = signalMissThread( stats )
-		-- return result
+		return result
 	end
 
 	-- Only continue beyond this point if the target is
 	-- a target dummy.
-	if not targetIsDummy( stats[TARGETNAME]) then
-		return result
-	end
+	-- if not targetIsDummy( stats[CLEU_TARGETNAME]) then
+	-- 	return result
+	-- end
 	if not isDamageSubEvent( stats ) then
-		return result
+		if not isHealSubEvent( stats ) then
+			return result
+		end
 	end
 
-	local remainingDmg, result = updateHealthBar( stats )
-	if remainingDmg == nil then return result end
+	if targetIsDummy( stats[CLEU_TARGETNAME] ) then
+		local remainingDmg, result = updateHealthBar( stats )
+		if remainingDmg == nil then return result end
 
-	if remainingDmg <= 0 then
-		local elapsedTime = stats[TIMESTAMP] - startOfCombat			
-		initEncounterDB( elapsedTime )
-		resetCombatState()
+		if remainingDmg <= 0 then
+			local elapsedTime = stats[CLEU_TIMESTAMP] - startOfCombat
+			targetHealthBar.ElapsedTime = elapsedTime	
+		end
 	end
+
 	return result
 end
 
@@ -805,6 +1007,7 @@ local function createHealthBarFrame()
 	f.TargetHealth		= 0
 	f.TargetName 		= nil
 	f.TargetGUID		= nil
+	f.ElapsedTime		= 0
 
 	if f.TargetMaxHealth == 0 and
 		f.TargetHealth 	== 0 and
@@ -853,7 +1056,6 @@ local function createHealthBarFrame()
 	f.bar.text:SetText( "" )
     return f
 end
--- called when PLAYER_CHANGED_TARGET fires and setTargetDummyHealth()
 local function setTargetHealth( targetName, targetGUID, targetMaxHealth )
 	assert( targetName ~= nil, "ASSERT FAILURE: target name not specified")
 
@@ -873,7 +1075,7 @@ local function setTargetHealth( targetName, targetGUID, targetMaxHealth )
 	f.bar.text:SetText( s )
 end
 -- Only called from the Options Menu Panel (OptionsMenu.lua)
-function cleu:setTargetDummyHealth( targetMaxHealth )
+function cleu:setTargetDummyHealth( targetDummyHealth )
 
 	if UnitExists("Target") == false then
 		UIErrorsFrame:SetTimeVisible(4)
@@ -881,23 +1083,48 @@ function cleu:setTargetDummyHealth( targetMaxHealth )
 		UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0 )
 		return
 	end
+
 	local targetName = UnitName("Target")
 	local targetGUID = UnitGUID("Target")
+
 	if not targetIsDummy( targetName ) then
 		UIErrorsFrame:SetTimeVisible(5)
 		local msg = sprintf("[INFO] %s Must Be A Target Dummy.", targetName )	
 		UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0 )
 		return
 	end
-	setTargetHealth( targetName, targetGUID, targetMaxHealth)
+
+	if targetDummyHealth == nil then
+		UIErrorsFrame:SetTimeVisible(5)
+		local msg = sprintf("[INFO] %s health not specified.", targetName )	
+		UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0 )
+		return
+	end
+
+	if targetDummyHealth == EMPTY_STR then
+		UIErrorsFrame:SetTimeVisible(5)
+		local msg = sprintf("[INFO] %s health not specified.", targetName )	
+		UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0 )
+		return
+	end
+	local targetHealth = tonumber( targetDummyHealth )
+
+	if targetHealth < 1 then
+		UIErrorsFrame:SetTimeVisible(5)
+		local msg = sprintf("[INFO] %s's health (%d) invalid.", targetName, targetHealth )	
+		UIErrorsFrame:AddMessage( msg, 1.0, 1.0, 0.0 )
+		return
+	end
+
+	setTargetHealth( targetName, targetGUID, targetHealth)
 	targetHealthBar:Show()
 end
-local function printHealMetrics()
-end
-local function printAuraMetrics()
-end
-local function printMissMetrics()
-end
+-- local function printHealMetrics()
+-- end
+-- local function printAuraMetrics()
+-- end
+-- local function printMissMetrics()
+-- end
 --------------- SCROLLING DAMAGE ---------------
 function cleu:enableScrollingDmg()
 	DISPLAY_DMG_ENABLED = true
@@ -980,15 +1207,6 @@ function cleu:getMissString()
 	local missString= table.remove( missStringsDB, 1 )
 	return missString, #missStringsDB
 end
-function cleu:hideFrame()
-    frames:hideFrame( combatEventLog )
-end
-function cleu:showFrame()
-    frames:showFrame( combatEventLog )
-end
-function cleu:clearFrameText() 
-    frames:clearFrameText( combatEventLog )
-end
 local function isPetType( flags )
 	return bit.band( flags, COMBATLOG_OBJECT_TYPE_MASK ) == bit.band( flags, COMBATLOG_OBJECT_TYPE_PET )
 end
@@ -1007,20 +1225,20 @@ local function isUnitValid( stats )	-- checks that the unit is the player or the
 	local isValid = false
 
 	--- is this unit the player?
-	if PLAYER_NAME == stats[SOURCENAME] then
+	if PLAYER_NAME == stats[CLEU_SOURCENAME] then
 		return true
 	end
 
 	-- Return true if this is the player's pet
-	local n = bit.band(stats[SOURCEFLAGS], COMBATLOG_OBJECT_TYPE_PET )
-	local m = bit.band( stats[SOURCEFLAGS], COMBATLOG_OBJECT_AFFILIATION_MINE)
+	local n = bit.band(stats[CLEU_SOURCEFLAGS], COMBATLOG_OBJECT_TYPE_PET )
+	local m = bit.band( stats[CLEU_SOURCEFLAGS], COMBATLOG_OBJECT_AFFILIATION_MINE)
 	-- if n == 4096 and m == 1 then
 	if n > 0 and m == 1 then
 		return true
 	end
 	-- Return true if this is the player's guardian
-	local n = bit.band(stats[SOURCEFLAGS], COMBATLOG_OBJECT_TYPE_GUARDIAN )
-	local m = bit.band( stats[SOURCEFLAGS], COMBATLOG_OBJECT_AFFILIATION_MINE)
+	local n = bit.band(stats[CLEU_SOURCEFLAGS], COMBATLOG_OBJECT_TYPE_GUARDIAN )
+	local m = bit.band( stats[CLEU_SOURCEFLAGS], COMBATLOG_OBJECT_AFFILIATION_MINE)
 	-- if n == 8192 and m == 1 then
 	if n > 0 and m == 1 then
 		return true
@@ -1075,6 +1293,7 @@ local OFFSET_Y			= 184.8804473877
 
 local eventFrame = CreateFrame("Frame" )
 eventFrame:RegisterEvent( "PLAYER_LOGIN")
+eventFrame:RegisterEvent( "PLAYER_REGEN_ENABLED")
 eventFrame:RegisterEvent( "PLAYER_TARGET_CHANGED")
 eventFrame:RegisterEvent( "COMBAT_LOG_EVENT_UNFILTERED")
 eventFrame:RegisterEvent( "ADDON_LOADED")
@@ -1087,7 +1306,6 @@ function( self, event, ... )
 		DEFAULT_CHAT_FRAME:AddMessage( L["ADDON_LOADED_MSG"],  1.0, 1.0, 0.0 )
 		eventFrame:UnregisterEvent("ADDON_LOADED") 
 		
-		combatEventLog = frames:createCombatEventLog(L["ADDON_AND_VERSION"])
 		targetHealthBar = createHealthBarFrame()
 		targetHealthBar:Hide()
 
@@ -1100,7 +1318,17 @@ function( self, event, ... )
 			DPS_TRACKER_HEALTHBAR_VARS = { FRAME_POINT, REFERENCE_FRAME, RELATIVE_TO, OFFSET_X, OFFSET_Y }
 		end
 	end
-	if event == "PLAYER_TARGET_CHANGED" then
+	if event == "PLAYER_REGEN_ENABLED" then
+		if targetHealthBar.TargetMaxHealth == 0 then
+			local last = #cleuStatsDB
+			local stats = cleuStatsDB[last]	
+			cleuElapsedTime = stats[CLEU_TIMESTAMP] - startOfCombat
+			print( thread:prefix(), cleuElapsedTime, startOfCombat )
+		end
+	end
+		
+ 	if event == "PLAYER_TARGET_CHANGED" then
+
 		local f = targetHealthBar
 		-- return if the player has deselected the target (or
 		-- no target selected.)
@@ -1124,9 +1352,9 @@ function( self, event, ... )
 		local targetGUID = UnitGUID( "Target" )
 		targetHealth = UnitHealthMax("Player")
 		setTargetHealth( targetName, targetGUID, targetHealth)
-		-- targetHealthBar:Show()
 	end
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+
 		local result = {SUCCESS, EMPTY_STR, EMPTY_STR}
 
 		local stats = {CombatLogGetCurrentEventInfo()}	
@@ -1136,8 +1364,11 @@ function( self, event, ... )
 		if isUnitValid( stats ) == false then
 			return
 		end
+
 		result = insertCleuStats( stats )
-		if not result[1] then mf:postResult( result ) end
+		if not result[1] and result[2] ~= "completed" then 
+			mf:postResult( result ) 
+		end
 		return
 	end
 end)
