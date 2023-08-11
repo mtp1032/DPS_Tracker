@@ -119,19 +119,19 @@ local function trackerCommands(cmdStr, editbox)
 
     -- pattern matching that skips leading whitespace and whitespace between cmd and args
     -- any whitespace at end of args is retained
-    local _, _, cmd, args = string.find(cmdStr, "%s?(%w+)%s?(.*)")
-    cmd = string.lower( cmd )
+    local _, _, cmd, args = strfind(cmdStr, "%s?(%w+)%s?(.*)")
+    cmd = strlower( cmd )
     if cmd == nil then
         print("Help not implemented yet")
         return
     end
 
     ----------- PRINT A COMBAT / ENCOUNTER SUMMARY  ---------
-    if cmd == "sum" then -- calls cleu:summarizeEncounter()
+    if cmd == "sum" then
         cleu:summarizeEncounter()  
         return
     end
-	if cmd == "reset" then -- calls cleu:summarizeEncounter()
+	if cmd == "reset" then
         cleu:resetCombatState()  
         return
     end
@@ -145,7 +145,7 @@ local function trackerCommands(cmdStr, editbox)
   end
   
   SLASH_DPS_TRACKER1 = "/report"
-  SlashCmdList["DPS_TRACKER"] = trackerCommands  -- adds "/monitor" to the commands list
+  SlashCmdList["DPS_TRACKER"] = trackerCommands
 
 local fileName = "CommandLine.lua"
 if base:debuggingIsEnabled() then
