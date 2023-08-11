@@ -105,7 +105,7 @@ local spellSchoolNames = {
 	{127, "Chaos"}
 }
 
-local targetHealthBar	= nil
+local targetHealthBar		= nil
 local startOfCombat			= 0
 local totalEncounterDmg		= 0
 local totalEncounterHealing	= 0
@@ -891,6 +891,9 @@ local function updateHealthBar( stats )
 	f.TargetHealth = f.TargetHealth - stats[CLEU_DMG_AMOUNT]
 	if f.TargetHealth <= 0 then 
 		f.bar:SetSmoothedValue( 0 )
+		f:Hide()
+		PlaySound(SOUNDKIT.READY_CHECK)
+
 	else
 		f.bar:SetSmoothedValue( f.TargetHealth  )
 	end
@@ -1073,6 +1076,7 @@ local function setTargetHealth( targetName, targetGUID, targetMaxHealth )
 	local percent = math.floor( f.TargetHealth/f.TargetMaxHealth * 100)	
 	local s = sprintf("[%s] %d HP ( %0.1f%%)", f.TargetName, f.TargetMaxHealth, percent )
 	f.bar.text:SetText( s )
+	f:Show()
 end
 -- Only called from the Options Menu Panel (OptionsMenu.lua)
 function cleu:setTargetDummyHealth( targetDummyHealth )
@@ -1116,6 +1120,7 @@ function cleu:setTargetDummyHealth( targetDummyHealth )
 		return
 	end
 
+	targetHealth = UnitHealthMax("Player")
 	setTargetHealth( targetName, targetGUID, targetHealth)
 	targetHealthBar:Show()
 end
@@ -1323,7 +1328,6 @@ function( self, event, ... )
 			local last = #cleuStatsDB
 			local stats = cleuStatsDB[last]	
 			cleuElapsedTime = stats[CLEU_TIMESTAMP] - startOfCombat
-			print( thread:prefix(), cleuElapsedTime, startOfCombat )
 		end
 	end
 		
@@ -1337,20 +1341,20 @@ function( self, event, ... )
 		if not targetIsDummy then return end
 
 		-- if the target is dead, there is nothing to record.
-		if UnitIsDead("Target") then return end
-		if not UnitExists("Target") then
-			cleu:resetTargetHealthBar()
-			if f:IsVisible() then
-				f:Hide()
-			end
-			if panel:isVisible() then
-				panel:hide()
-			end
-			return
-		end
+		-- if UnitIsDead("Target") then return end
+		-- if not UnitExists("Target") then
+		-- 	cleu:resetTargetHealthBar()
+		-- 	if f:IsVisible() then
+		-- 		f:Hide()
+		-- 	end
+		-- 	if panel:isVisible() then
+		-- 		panel:hide()
+		-- 	end
+		-- 	return
+		-- end
 
 		local targetGUID = UnitGUID( "Target" )
-		targetHealth = UnitHealthMax("Player")
+		targetHealth = 2*UnitHealthMax("Player")
 		setTargetHealth( targetName, targetGUID, targetHealth)
 	end
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
