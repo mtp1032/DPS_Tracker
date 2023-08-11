@@ -15,7 +15,7 @@ local EMPTY_STR = base.EMPTY_STR
 ------------------------------------------------------------
 local optionsPanel = nil
 
-local defaultTargetHealth = UnitHealthMax("Player") / 2
+local defaultTargetHealth = UnitHealthMax("Player") * 1
 DPS_TRACKER_CHECKBOX_VARS	= {}
 
 local dmg  = 1
