@@ -454,8 +454,6 @@ local function signalAuraThread( stats ) -- sends thread:sentSignal( aura_h, SIG
         end
     end
 
-
-
 	table.insert( auraStringsDB, auraString )
 	result = thread:sendSignal( aura_h, SIG_ALERT )
 	return result
